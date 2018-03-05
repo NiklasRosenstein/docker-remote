@@ -20,17 +20,14 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 """
-Creates an SSH tunnel to the docker daemon on another machine.
+Create an SSH tunnel via the `ssh` client program.
 """
 
 import subprocess
-from . import config, remote
+import time
 
 
 class SSHTunnel:
-  """
-  Base class for SSH tunnels.
-  """
 
   def __init__(self, local_port, remote_port, host, user=None):
     self.local_port = local_port
@@ -38,35 +35,29 @@ class SSHTunnel:
     self.host = host
     self.user = user
 
+  def __repr__(self):
+    return 'SSHTunnel({!r})'.format(self.ssh_command())
+
   def __enter__(self):
-    mapping = '{}:{}'.format(self.local_port, self.remote_port)
-    host = '{}@{}'.format(self.user or 'root', self.host)
-    command = ['ssh', '-NL', mapping, self.host]
-    self._proc = subprocess.Popen(command)
+    self._proc = subprocess.Popen(self.ssh_command())
+    return self
 
   def __exit__(self, *a):
     self._proc.terminate()
     self._proc.wait()
 
+  def ssh_command(self):
+    mapping = '{}:{}'.format(self.local_port, self.remote_port)
+    host = self.host
+    if self.user:
+      host = '{}@{}'.format(self.user, host)
+    return ['ssh', '-NL', mapping, host]
 
-class DockerTunnel:
-
-  def __init__(self, local_port=None):
-    if local_port is None:
-      # TODO: Maybe just choose a random local port.
-      local_port = config.get('tunnel.local_port', 2375)
-    remote_port = config.get('tunnel.remote_port', '/var/run/docker.sock')
-    user = config.get('tunnel.remote_user', None)
-    host = remote.get_remote_config()[0]
-    self.local_port = local_port
-    self.remote_port = remote_port
-    self.host = host
-    self.user = user
-    self._tunnel = SSHTunnel(local_port, remote_port, host, user)
-
-  def __enter__(self):
-    self._tunnel.__enter__()
-    return self
-
-  def __exit__(self, *a):
-    return self._tunnel.__exit__(*a)
+  def status(self):
+    code = self._proc.poll()
+    if code is None:
+      return 'alive'
+    elif code == 0:
+      return 'ended'
+    else:
+      return 'error'

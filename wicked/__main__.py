@@ -27,7 +27,7 @@ import sys
 import time
 import toml
 
-from .client import config, remote, tunnel
+from .client import dockertunnel, config, remote
 from .host import projects
 
 
@@ -70,6 +70,8 @@ def new_project(parser, args, config_file, connect_only=False):
 
 def get_argument_parser(prog):
   parser = argparse.ArgumentParser(prog=prog)
+  parser.add_argument('-H', '--host', help='The docker daemon host.')
+
   subp = parser.add_subparsers(dest='command')
 
   ls_command = subp.add_parser('ls', help='List all projects.')
@@ -77,19 +79,17 @@ def get_argument_parser(prog):
   info_command = subp.add_parser('info', help='Show current project information.')
 
   tunnel_command = subp.add_parser('tunnel', help='Create a tunnel to a docker daemon.')
+  tunnel_command.add_argument('--shell', action='store_true', help='Enter a new shell after the tunnel is created.')
 
   new_command = subp.add_parser('new', help='Create a new project.')
   new_command.add_argument('name', help='The project name.')
-  new_command.add_argument('host', nargs='?', help='The host for the project.')
 
   connect_command = subp.add_parser('connect', help='Connect this directory to an existing project.')
   connect_command.add_argument('name', help='The existing project\'s name.')
-  connect_command.add_argument('host', nargs='?', help='The host of the project.')
 
   rm_command = subp.add_parser('rm', help='Delete the project.')
   rm_command.add_argument('-y', '--yes', action='store_true', help='Do not ask for confirmation.')
   rm_command.add_argument('name', nargs='?', help='The project name.')
-  rm_command.add_argument('host', nargs='?', help='The host of the project.')
 
   return parser
 
@@ -102,12 +102,12 @@ def main(argv=None, prog=None):
   if os.path.isfile(config_file):
     config.read(config_file)
 
-  if hasattr(args, 'host') and not args.host:
+  if not args.host:
     args.host = remote.get_remote_display()
   if hasattr(args, 'name') and not args.name:
     args.name = config.get('project.name', None)
 
-  if hasattr(args, 'host') and args.host:
+  if args.host:
     remote.set_remote_config(args.host)
 
   if args.command == 'ls':
@@ -130,10 +130,16 @@ def main(argv=None, prog=None):
     return new_project(parser, args, config_file, connect_only=True)
 
   elif args.command == 'tunnel':
-    with tunnel.DockerTunnel() as t:
-      print('DOCKER_HOST=tcp://localhost:{}'.format(t.local_port))
-      while True:
-        time.sleep(0.1)
+    with dockertunnel.new_tunnel() as (tun, var):
+      print(tun, var)
+      if args.shell:
+        os.environ['DOCKER_HOST'] = var
+        subprocess.call([os.getenv('SHELL', 'bash')])
+      else:
+        print('DOCKER_HOST={}'.format(var))
+        while tun.status() == 'alive':
+          time.sleep(0.1)
+        print(tun.status())
     return 0
 
   elif args.command == 'rm':
