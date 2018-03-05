@@ -20,10 +20,12 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+import os
 import nr.tempfile
 import posixpath
-import subprocess
 import yaml
+from . import log
+from ..core.subp import shell_convert, shell_call
 
 
 def prefix_volumes(config, prefix, volume_dirs=None):
@@ -51,5 +53,7 @@ def run(argv, project_name, config=None):
       command += ['-f', temp_config.name]
     command += ['--project-directory', '.']
     command += argv
-    print(command)
-    return subprocess.call(command, shell=True)
+    if os.name != 'nt' and not os.getenv('DOCKER_HOST'):
+      command.insert(0, 'sudo')
+    log.info('$ ' + shell_convert(command))
+    return shell_call(command)

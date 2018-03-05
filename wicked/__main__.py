@@ -21,6 +21,7 @@
 # IN THE SOFTWARE.
 
 import argparse
+import contextlib
 import os
 import subprocess
 import sys
@@ -28,7 +29,7 @@ import time
 import toml
 import yaml
 
-from .client import dockertunnel, dockercompose, config, remote
+from .client import config, dockertunnel, dockercompose, log, remote
 from .host import projects
 
 
@@ -72,7 +73,7 @@ def new_project(parser, args, config_file, connect_only=False):
 def get_argument_parser(prog):
   parser = argparse.ArgumentParser(prog=prog)
   parser.add_argument('-H', '--host', help='The docker daemon host.')
-
+  parser.add_argument('-v', '--verbose', action='count', default=0, help='More output.')
   subp = parser.add_subparsers(dest='command')
 
   ls_command = subp.add_parser('ls', help='List all projects.')
@@ -101,6 +102,11 @@ def get_argument_parser(prog):
 def main(argv=None, prog=None):
   parser = get_argument_parser(prog)
   args = parser.parse_args(argv)
+
+  if args.verbose > 1:
+    log.logger.setLevel(log.logging.INFO)
+  elif args.verbose > 0:
+    log.logger.setLevel(log.logging.DEBUG)
 
   config_file = '.wicked-project.toml'
   if os.path.isfile(config_file):
@@ -169,16 +175,22 @@ def main(argv=None, prog=None):
     with open(compose_file) as fp:
       data = yaml.load(fp)
 
-    with remote.new_client() as client:
+    with remote.new_client() as client, contextlib.ExitStack() as stack:
       if not client.call(projects.project_exists, args.name):
         parser.error('project {!r} does not exist'.format(args.name))
       prefix = client.call(projects.get_project_path, args.name)
       volume_dirs = []
       data = dockercompose.prefix_volumes(data, prefix, volume_dirs)
       client.call(projects.ensure_volume_dirs, args.name, volume_dirs)
-      with dockertunnel.new_tunnel() as (tun, docker_host):
+
+      host, user = remote.get_remote_config()
+      if host == 'localhost' and not user:
+        pass
+      else:
+        tun, docker_host = stack.enter_context(dockertunnel.new_tunnel())
         os.environ['DOCKER_HOST'] = docker_host
-        return dockercompose.run(args.argv, args.name, data)
+
+      return dockercompose.run(args.argv, args.name, data)
 
   else:
     parser.print_usage()

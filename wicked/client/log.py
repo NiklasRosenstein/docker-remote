@@ -19,25 +19,31 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
-"""
-Subprocess tools.
-"""
 
-import shlex
-import subprocess
+import logging
+import sys
 
-
-def shell_convert(command):
-  if not isinstance(command, str):
-    command = ' '.join(shlex.quote(x) for x in command)
-  return command
+logger = logging.getLogger(__name__)
+handler = logging.StreamHandler(sys.stderr)
+handler.setFormatter(logging.Formatter('%(message)s'))
+logger.addHandler(handler)
 
 
-def shell_popen(command, *args, **kwargs):
-  kwargs['shell'] = True
-  return subprocess.Popen(shell_convert(command), *args, **kwargs)
+def log(*args, **kwargs):
+  return logger.log(*args, **kwargs)
 
 
-def shell_call(command, *args, **kwargs):
-  kwargs['shell'] = True
-  return subprocess.call(shell_convert(command), *args, **kwargs)
+def debug(*args, **kwargs):
+  return logger.debug(*args, **kwargs)
+
+
+def info(*args, **kwargs):
+  return logger.info(*args, **kwargs)
+
+
+def warn(*args, **kwargs):
+  return logger.warn(*args, **kwargs)
+
+
+def error(*args, **kwargs):
+  return logger.error(*args, **kwargs)
