@@ -57,7 +57,7 @@ def _makedir(path):
 
 
 def get_project_path(name):
-  return os.path.join(PROJECT_ROOT, name)
+  return os.path.normpath(os.path.join(PROJECT_ROOT, name))
 
 
 def project_lock(name, metadata_file=None):

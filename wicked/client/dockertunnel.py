@@ -35,7 +35,7 @@ def new_tunnel():
   configuration.
   """
 
-  # TODO: Choose a random available port?
+  # TODO: Choose a random available port.
   local_port = config.get('tunnel.local_port', 2375)
   remote_port = config.get('tunnel.remote_port', '/var/run/docker.sock')
   host = remote.get_remote_config()[0]

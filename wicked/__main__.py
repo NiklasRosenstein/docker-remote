@@ -104,7 +104,7 @@ def main(argv=None, prog=None):
 
   if not args.host:
     args.host = remote.get_remote_display()
-  if hasattr(args, 'name') and not args.name:
+  if not getattr(args, 'name', None):
     args.name = config.get('project.name', None)
 
   if args.host:
@@ -120,7 +120,10 @@ def main(argv=None, prog=None):
     name = config.get('project.name', None)
     if not name:
       parser.error('no project information')
-    print('project {!r} on {}'.format(name, remote.get_remote_display()))
+    host = remote.get_remote_display()
+    with remote.new_client() as client:
+      project_path = client.call(projects.get_project_path, args.name)
+    print('project {!r} at {}:{}'.format(name, host, project_path))
     return 0
 
   elif args.command == 'new':
@@ -131,7 +134,6 @@ def main(argv=None, prog=None):
 
   elif args.command == 'tunnel':
     with dockertunnel.new_tunnel() as (tun, var):
-      print(tun, var)
       if args.shell:
         os.environ['DOCKER_HOST'] = var
         subprocess.call([os.getenv('SHELL', 'bash')])
@@ -139,7 +141,8 @@ def main(argv=None, prog=None):
         print('DOCKER_HOST={}'.format(var))
         while tun.status() == 'alive':
           time.sleep(0.1)
-        print(tun.status())
+        if tun.status() != 'ended':
+          return 1
     return 0
 
   elif args.command == 'rm':
