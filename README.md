@@ -6,8 +6,10 @@ to ensure any volumes are inside the project directory on the host.
 
 ### To do
 
-* Alias command that creates an SSH tunnel and runs `docker-compose`
-* Preprocess docker-compose configuration
+* Ability to choose a random local port in `wicked.core.tunnel.SSHTunnel`
+* `wicked compose` command as a wrapper for `docker-compose` that creates
+  a tunnel to the remote docker daemon and preprocesses the relative volume
+  paths in the configuration
 
 ---
 
