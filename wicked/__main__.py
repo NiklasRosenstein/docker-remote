@@ -26,8 +26,9 @@ import subprocess
 import sys
 import time
 import toml
+import yaml
 
-from .client import dockertunnel, config, remote
+from .client import dockertunnel, dockercompose, config, remote
 from .host import projects
 
 
@@ -90,6 +91,9 @@ def get_argument_parser(prog):
   rm_command = subp.add_parser('rm', help='Delete the project.')
   rm_command.add_argument('-y', '--yes', action='store_true', help='Do not ask for confirmation.')
   rm_command.add_argument('name', nargs='?', help='The project name.')
+
+  compose_command = subp.add_parser('compose', help='Wrapper for docker-compose.')
+  compose_command.add_argument('argv', nargs='...')
 
   return parser
 
@@ -155,6 +159,26 @@ def main(argv=None, prog=None):
         return 0
       client.call(projects.remove_project, args.name)
     return 0
+
+  elif args.command == 'compose':
+    if not args.name:
+      parser.error('missing project name')
+    compose_file = 'docker-compose.yml'
+    if not os.path.isfile(compose_file):
+      parser.error('file {!r} does not exist'.format(compose_file))
+    with open(compose_file) as fp:
+      data = yaml.load(fp)
+
+    with remote.new_client() as client:
+      if not client.call(projects.project_exists, args.name):
+        parser.error('project {!r} does not exist'.format(args.name))
+      prefix = client.call(projects.get_project_path, args.name)
+      volume_dirs = []
+      data = dockercompose.prefix_volumes(data, prefix, volume_dirs)
+      client.call(projects.ensure_volume_dirs, args.name, volume_dirs)
+      with dockertunnel.new_tunnel() as (tun, docker_host):
+        os.environ['DOCKER_HOST'] = docker_host
+        return dockercompose.run(args.argv, args.name, data)
 
   else:
     parser.print_usage()

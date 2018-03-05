@@ -26,6 +26,7 @@ machine.
 
 import filelock
 import os
+import nr.path
 import re
 import shutil
 
@@ -104,3 +105,11 @@ def remove_project(name):
   # TODO: Check if containers are still running in this project and
   #       prevent deletion of the project until they are stopped.
   shutil.rmtree(project_path)
+
+
+def ensure_volume_dirs(name, dirs):
+  project_path = get_project_path(name)
+  for dirname in dirs:
+    if not os.path.isabs(dirname):
+      dirname = os.path.join(project_path, dirname)
+    nr.path.makedirs(dirname)
