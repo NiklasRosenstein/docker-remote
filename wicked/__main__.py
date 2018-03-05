@@ -24,9 +24,10 @@ import argparse
 import os
 import subprocess
 import sys
+import time
 import toml
 
-from .client import config, remote
+from .client import config, remote, tunnel
 from .host import projects
 
 
@@ -74,6 +75,8 @@ def get_argument_parser(prog):
   ls_command = subp.add_parser('ls', help='List all projects.')
 
   info_command = subp.add_parser('info', help='Show current project information.')
+
+  tunnel_command = subp.add_parser('tunnel', help='Create a tunnel to a docker daemon.')
 
   new_command = subp.add_parser('new', help='Create a new project.')
   new_command.add_argument('name', help='The project name.')
@@ -125,6 +128,13 @@ def main(argv=None, prog=None):
 
   elif args.command == 'connect':
     return new_project(parser, args, config_file, connect_only=True)
+
+  elif args.command == 'tunnel':
+    with tunnel.DockerTunnel() as t:
+      print('DOCKER_HOST=tcp://localhost:{}'.format(t.local_port))
+      while True:
+        time.sleep(0.1)
+    return 0
 
   elif args.command == 'rm':
     if not args.name:
