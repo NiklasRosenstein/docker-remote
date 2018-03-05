@@ -32,6 +32,7 @@ import subprocess
 import sys
 import struct
 import traceback
+from .subp import shell_popen
 
 TOOL_NAME = 'wicked.core.remotepy'
 
@@ -144,8 +145,8 @@ class LocalClient:
 
   def __enter__(self):
     command = [TOOL_NAME, '--ioproto']
-    self._proc = subprocess.Popen(command, stdin=subprocess.PIPE,
-      stdout=subprocess.PIPE, shell=True)
+    self._proc = shell_popen(command, stdin=subprocess.PIPE,
+      stdout=subprocess.PIPE)
     self._client = IoProtocolClient(self._proc.stdin, self._proc.stdout)
     return self
 
