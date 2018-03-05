@@ -42,6 +42,7 @@ class IoProtocolHandler:
   """
 
   def __init__(self, stdin=None, stdout=None, log_exception=True):
+    self.is_std = (stdin is None or stdout is None)
     self.stdin = stdin or sys.stdin.buffer
     self.stdout = stdout or sys.stdout.buffer
     self.log_exception = log_exception
@@ -70,6 +71,16 @@ class IoProtocolHandler:
     self.stdout.write(response)
     self.stdout.flush()
     return True
+
+  def __enter__(self):
+    if self.is_std:
+      self._old_std = (sys.stdin, sys.stdout)
+      sys.stdout = sys.stderr
+    return self
+
+  def __exit__(self, *a):
+    if self.is_std:
+      sys.stdin, sys.stdout = self._old_std
 
 
 class IoProtocolClient:
@@ -162,9 +173,9 @@ def main(argv=None, prog=None):
   args = parser.parse_args(argv)
 
   if args.ioproto:
-    handler = IoProtocolHandler()
-    while handler.handle_request():
-      pass
+    with IoProtocolHandler() as handler:
+      while handler.handle_request():
+        pass
   else:
     parser.print_help()
 
