@@ -28,6 +28,7 @@ value.
 import argparse
 import paramiko
 import pickle
+import signal
 import subprocess
 import sys
 import struct
@@ -174,6 +175,9 @@ def main(argv=None, prog=None):
   args = parser.parse_args(argv)
 
   if args.ioproto:
+    def noop(signal, frame):
+      pass
+    signal.signal(signal.SIGINT, noop)
     with IoProtocolHandler() as handler:
       while handler.handle_request():
         pass
