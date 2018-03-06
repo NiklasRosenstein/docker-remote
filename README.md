@@ -1,15 +1,34 @@
-## docker-remote (WIP)
+# Docker Remote
 
-Docker-remote is a wrapper for `docker-compose` that allows you to manage Docker
-compositions on a remote machine easily. It automatically opens an SSH tunnel
-for the docker daemon and wraps the `docker` and `docker-compose` commands.
+![](docs/logo.png) *Note: This is work in progress software.*
 
-By wrapping `docker-compose`, docker-remote can update your configuration file
-to ensure that relative volume paths are converted to absolute paths inside a
-project directory on the host.
+  [Compose]: https://github.com/docker/compose
+
+Remote is a tool for managing Docker applications via [Compose] on another
+machine. It uses SSH tunnels to connect your Docker and Docker Compose client
+with your Docker Host.
+
+    $ docker-remote -H myhost.com shell
+    Setting up a docker-compose alias...
+    
+    $ alias
+    alias docker-compose='docker-remote compose'
+
+    $ echo $DOCKER_HOST
+    tcp://localhost:2375
+    
+    $ docker-compose up --build
+    $ docker ps
 
 Check out the [Documentation](docs/) for installation instructions and
 tutorials.
+
+__Features__
+
+* Allows you to compose and manage applications remotely
+* Pre-processes your Docker Compose configuration in order to place all
+  named and relative volume names inside a project directory.
+* Automatically adds a `dockerhost` hostname to `/etc/hosts` (**To do** #4)
 
 ---
 
