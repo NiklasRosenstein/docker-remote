@@ -23,6 +23,7 @@
 import argparse
 import contextlib
 import os
+import nr.tempfile
 import subprocess
 import sys
 import time
@@ -60,7 +61,10 @@ def get_argument_parser(prog):
     help='Generate more output, such as sub-commands that are being invoked.')
 
   tunnel = subp.add_parser('tunnel', help='Create a tunnel to a docker daemon.')
-  shell = subp.add_parser('shell', help='Create a tunnel and enter a new shell.')
+  shell = subp.add_parser('shell', help='Create a tunnel and enter a new '
+    'shell. Inside this shell, a docker-compose alias is created to route '
+    'through docker-remote, allowing you to use your normal docker-compose '
+    'workflow while having the benefits of docker-remote.')
   ls = subp.add_parser('ls', help='List projects on the host.')
 
   rm = subp.add_parser('rm', help='Delete a project on the host.')
@@ -125,18 +129,32 @@ def main(argv=None, prog=None):
     return 0
 
   elif args.command in ('tunnel', 'shell'):
+    if os.getenv('DOCKER_REMOTE_SHELL') == '1':
+      parser.error('It seems you are already inside a docker-remote shell.')
     is_shell = args.command == 'shell'
-    with dockertunnel.new_tunnel() as (tun, docker_host):
+    with dockertunnel.new_tunnel() as (tun, docker_host), contextlib.ExitStack() as stack:
       if is_shell:
         os.environ['DOCKER_HOST'] = docker_host
-        subprocess.call([os.getenv('SHELL', 'bash')])
+        shell = os.getenv('SHELL', '')
+        if not shell:
+          shell = 'cmd' if os.name == 'nt' else 'bash'
+        if 'cmd' in os.path.basename(shell) and os.name == 'nt':
+          command = [shell, '/k', 'echo Setting up docker-compose alias... && doskey docker-compose=docker-remote compose $*']
+        else:
+          tempfile = stack.enter_context(nr.tempfile.tempfile(text=True))
+          tempfile.write('echo "Setting up docker-compose alias..."\nalias docker-compose="docker-remote compose"\n')
+          tempfile.close()
+          command = [shell, '--rcfile', tempfile.name, '-i']
+        log.info('$ ' + shell_convert(command))
+        os.environ['DOCKER_REMOTE_SHELL'] = '1'
+        return subprocess.call(command)
       else:
         print('DOCKER_HOST={}'.format(docker_host))
         while tun.status() == 'alive':
           time.sleep(0.1)
         if tun.status() != 'ended':
           return 1
-    return 0
+    assert False
 
   elif args.command == 'rm':
     if not args.projects:
