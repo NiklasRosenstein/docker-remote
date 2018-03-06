@@ -4,8 +4,27 @@ Docker-remote is also usefult to run one-off applications. If the data that
 they produce is stored on mapped volumes, these volumes can then be downloaded
 conveniently with Docker-remote.
 
-Let's start by creating a very simple web scraper that stores every URL it
-can find in a Postgres Database.
+### Using the Docker Remote Shell
+
+Let's start by using the Docker Remote Shell feature which will allow us to
+use the standard Docker Compose workflow without having to use the
+`docker-remote` command-line explicitly with each command.
+
+    $ docker-remote shell
+    Setting up docker-compose alias...
+    $ alias
+    alias docker-compose='docker-remote compose'
+
+If you now use `docker` or `docker-compose`, it will be the same as if you
+used `docker-remote docker` or `docker-remote compose`.
+
+    $ docker ps
+    # This should list all containers on your remote Docker host.
+
+### A simple Python web scraper
+
+The following is a very basic web scraper that uses a PostgresSQL database
+driver to save any link it finds to a database, starting from Google.
 
 ```python
 # scraper.py
@@ -35,7 +54,7 @@ def init_tables(con):
     url TEXT PRIMARY KEY
   )''')
 
-def scrap(con):
+def scrape(con):
   cur = con.cursor()
   queue.append('https://google.com')
   while queue:
@@ -73,12 +92,16 @@ if __name__ == '__main__':
   main()
 ```
 
-Now lets us create a Docker-compose configuration with two containers: One
-for the Python script and the other for the Postgres database.
+### Compositing the application
+
+Now lets us create a Docker Compose configuration with two containers: One
+for the Python script and the other for the Postgres database. Also let us
+specify the project name so we can omit it in the `docker-compose`
+command-line.
 
 ```yaml
 # docker-compose.yml
-version: '3'
+version: '3.4'
 services:
   scraper:
     build: .
@@ -93,6 +116,9 @@ services:
       - "5432"
     volumes:
       - data:/var/lib/postgresql/data
+x-docker-remote:
+  project:
+    name: webscraper
 ```
 
 And a Dockerfile that installs all the dependencies for our scraper:
@@ -105,13 +131,18 @@ COPY . .
 ENTRYPOINT python scraper.py
 ```
 
-Now we can run this composition with Docker-remote. Note that the `data`
-volume of the `db` service will be automatically mapped to a directory
-in the project directory that is automatically created for your composition.
+Now we can run this composition with Docker Compose. Since we are inside the
+Docker Remote Shell, what this will actually do is first go through the Docker
+Remote wrapper for the preprocessing steps.
+
+Note that the `data` volume of the `db` service will be automatically mapped
+to a directory in the project directory that is automatically created for your
+composition. If your project directory on your host is `/home/docker-remote/`
+then the database volume will be mounted at `/home/docker-remote/webscraper/data`.
 
 ```
-$ docker-remote -p webscraper compose up -d
-$ docker-remote -p webscraper compose logs scraper -f
+$ docker-compose up -d
+$ docker-compose logs scraper -f
 Attaching to myapp_scraper_1
 scraper_1  | https://google.com
 scraper_1  | https://www.google.de/imghp?hl=de&tab=wi
@@ -137,7 +168,7 @@ To retrieve the data, we can simply enter the database service and dump the
 database.
 
 ```
-$ docker-remote -p myapp compose exec db psql -U postgres -d links -c "COPY links TO stdout DELIMITER ',' CSV HEADER"
+$ docker-compose exec db psql -U postgres -d links -c "COPY links TO stdout DELIMITER ',' CSV HEADER"
 url
 https://google.com
 https://www.google.de/imghp?hl=de&tab=wi
@@ -155,4 +186,4 @@ Note that the database service must be running for this command to work. If
 you already stopped the containers, spin up the database service again using
 this command:
 
-    $ docker-remote -p myapp compose start db
+    $ docker-compose start db

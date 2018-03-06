@@ -47,9 +47,9 @@ host). In this example, let's consider that you configured Docker-remote to
 operate with your server at `myhost.com`.
 
 ```
-$ docker-remote compose up -d
-Created new project 'full_case'
-Creating network "fullcase_default" with the default driver
+$ docker-remote -p myapp compose up -d
+Created new project 'myapp'
+Creating network "myapp_default" with the default driver
 Building web
 Step 1/5 : FROM python:latest
  ---> 336d482502ab
@@ -66,14 +66,10 @@ Step 5/5 : ENTRYPOINT gunicorn app:app -b 0.0.0.0:8000
 Removing intermediate container 29de64ba77e6
  ---> db9ddb52ac7a
 Successfully built db9ddb52ac7a
-Successfully tagged fullcase_web:latest
+Successfully tagged myapp_web:latest
 WARNING: Image for service web was built because it did not already exist. To rebuild this image you must use `docker-compose build` or `docker-compose up --build`.
-Creating fullcase_web_1 ... done
+Creating myapp_web_1 ... done
 ```
-
-You can see that Docker-remote has allocated a random project name. If we were
-using volumes in the Docker-compose configuration, these volumes would be
-placed in the project directory.
 
 Now, visit your new Python web application:
 
@@ -83,15 +79,37 @@ Now, visit your new Python web application:
 Check your applications process information:
 
 ```
-$ docker-remote -p full_case compose ps
+$ docker-remote -p myapp compose ps
      Name                   Command               State           Ports
 --------------------------------------------------------------------------------
-fullcase_web_1   /bin/sh -c gunicorn app:ap ...   Up      0.0.0.0:8000->8000/tcp
+myapp_web_1      /bin/sh -c gunicorn app:ap ...   Up      0.0.0.0:8000->8000/tcp
 ```
 
 Stop your application and clean up containers:
 
+    $ docker-remote -p myapp compose stop
+    $ docker-remote -p myapp compose rm
+
+To avoid having to pass `-p myapp` every time you use Docker Remote, you
+can specify the project name in your `docker-compose.yml` configuration.
+Note that we set the version to `3.4` as extension fields have been introduced
+only with that Compose file format version. While you can use any version
+because Docker Remote will strip the field in the preprocessing stage, the
+file would be invalid for use with plain `docker-compose`.
+
+```yaml
+# docker-compose.yml
+version: '3.4'
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+x-docker-remote:
+  project:
+    name: myapp
 ```
-$ docker-remote -p full_case compose stop
-$ docker-remote -p full_case compose rm
-```
+
+Now you can skip specifying the project-name on the command-line.
+
+    $ docker-remote compose up --build --detach
