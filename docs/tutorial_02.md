@@ -29,19 +29,13 @@ def init_database():
       print('Creating database ...')
       cur.execute("CREATE DATABASE links")
 
-def init_tables():
+def init_tables(con):
   cur = con.cursor()
   cur.execute('''CREATE TABLE IF NOT EXISTS links (
     url TEXT PRIMARY KEY
   )''')
 
-def main():
-  init_database()
-  global con
-  with psycopg2.connect(database='links', user='postgres',
-      host='database', password='password') as con:
-    init_tables()
-
+def scrap(con):
   cur = con.cursor()
   queue.append('https://google.com')
   while queue:
@@ -67,6 +61,13 @@ def main():
             (info.scheme in ('http', 'https') and info.netloc):
           queue.append(urllib.parse.urljoin(url, anchor['href']))
   print('Done.')
+
+def main():
+  init_database()
+  with psycopg2.connect(database='links', user='postgres',
+      host='database', password='password') as con:
+    init_tables(con)
+    scrape(con)
 
 if __name__ == '__main__':
   main()
@@ -123,6 +124,14 @@ scraper_1  | https://drive.google.com/?tab=wo
 scraper_1  | https://www.google.de/intl/de/options/
 ...
 ```
+
+> **To do**: You may notice a connection error of the Python script to the
+> Postgres database when you first start the containers. This is because
+> the Postgres container needs some time to initialize the data directory
+> and at the time the Python container attempts to connect, it is not yet
+> running.
+>
+> Is there a solution or best practice to overcome this issue?
 
 To retrieve the data, we can simply enter the database service and dump the
 database.
