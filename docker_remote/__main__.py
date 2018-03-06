@@ -54,6 +54,10 @@ def confirm(question):
   return reply in ('y', 'yes', 'ok', 'true')
 
 
+def is_inside_docker_remote_shell():
+  return os.getenv('DOCKER_REMOTE_SHELL') == '1'
+
+
 def get_argument_parser(prog):
   parser = argparse.ArgumentParser(prog=prog)
   subp = parser.add_subparsers(dest='command')
@@ -140,7 +144,7 @@ def main(argv=None, prog=None):
     return 0
 
   elif args.command in ('tunnel', 'shell'):
-    if os.getenv('DOCKER_REMOTE_SHELL') == '1':
+    if is_inside_docker_remote_shell():
       parser.error('It seems you are already inside a docker-remote shell.')
     is_shell = args.command == 'shell'
     with dockertunnel.new_tunnel() as (tun, docker_host), contextlib.ExitStack() as stack:
@@ -216,7 +220,7 @@ def main(argv=None, prog=None):
         host, user = remote.get_remote_config()
         if host == 'localhost' and not user:
           pass
-        else:
+        elif not is_inside_docker_remote_shell():
           tun, docker_host = stack.enter_context(dockertunnel.new_tunnel())
           os.environ['DOCKER_HOST'] = docker_host
 
