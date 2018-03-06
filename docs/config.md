@@ -28,7 +28,7 @@ x-docker-remote:
 The project name. If no project name is explicitly specified on the
 command-line, this value is used.
 
-#### [project] dockerhost
+#### [project] add_dockerhost
 
 If this option is set to `true`, Docker Remote will automatically determine
 the IP address of the Docker Host machine and add it to the Docker Compose
@@ -45,7 +45,8 @@ services:
     image: postgres
 x-docker-remote:
   project:
-    dockerhost: ["web"]
+    name: nonsense
+    add_dockerhost: ["web"]
 ```
 
 #### [host] project_root
