@@ -16,6 +16,15 @@ with your Docker Host.
 
     $ echo $DOCKER_HOST
     tcp://localhost:2375
+
+    $ cat docker-compose.yml
+    version: '3'
+    services:
+      web:
+        image: nginx
+    x-docker-remote:
+      project:
+        name: myapp
     
     $ docker-compose up --build
     $ docker ps
