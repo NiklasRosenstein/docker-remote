@@ -1,6 +1,10 @@
 # Docker Remote
 
-![](docs/logo.png) *Note: This is work in progress software.*
+<a href="https://opensource.org/licenses/MIT">
+  <img align="right" src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT">
+</a>
+
+![](docs/logo.png)
 
   [Compose]: https://github.com/docker/compose
 
