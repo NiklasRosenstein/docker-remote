@@ -19,30 +19,107 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
+"""
+This module generates random project names.
+"""
 
-import os
-import toml
+import random
 
-CONFIG_FILENAME = os.path.expanduser('~/.wicked-host.toml')
+adjectives = """
+best
+better
+big
+certain
+clear
+different
+early
+easy
+economic
+federal
+free
+full
+good
+great
+hard
+high
+important
+international
+large
+late
+little
+local
+long
+low
+major
+new
+old
+only
+other
+political
+possible
+public
+real
+recent
+right
+small
+social
+special
+strong
+sure
+true
+whole
+young
+""".strip().split('\n')
 
-try:
-  with open(CONFIG_FILENAME) as fp:
-    data = toml.load(fp)
-  del fp
-except FileNotFoundError:
-  data = {}
+nouns = """
+area
+book
+business
+case
+company
+country
+day
+eye
+fact
+group
+hand
+home
+job
+life
+lot
+money
+month
+mother
+night
+number
+part
+place
+point
+problem
+program
+question
+right
+room
+school
+state
+story
+student
+study
+system
+thing
+time
+water
+way
+week
+word
+work
+world
+year
+""".strip().split('\n')
+
+def namegen(sep='_'):
+  return random.choice(adjectives) + sep + random.choice(nouns)
 
 
-def get(key, default=NotImplemented):
-  parts = key.split('.')
-  value = data
-  for part in parts:
-    try:
-      if not isinstance(value, dict):
-        raise KeyError
-      value = value[part]
-    except KeyError:
-      if default is NotImplemented:
-        raise KeyError(key)
-      return default
-  return value
+if __name__ == '__main__':
+  print(namegen())

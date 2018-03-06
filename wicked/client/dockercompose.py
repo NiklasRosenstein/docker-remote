@@ -28,15 +28,15 @@ from . import log
 from ..core.subp import shell_convert, shell_call
 
 
-def prefix_volumes(config, prefix, volume_dirs=None):
+def prefix_volumes(path_module, config, prefix, volume_dirs=None):
   for service in config.get('services', {}).items():
     volumes = service[1].get('volumes', [])
     for i, volume in enumerate(volumes):
-      if volume.count(':') != 1:
+      if ':' not in volume:
         raise ValueError('invalid volume: {!r}'.format(volume))
-      lv, cv = volume.split(':')
-      if not posixpath.isabs(lv):
-        lv = posixpath.join(prefix, lv)
+      lv, cv = volume.rpartition(':')[::2]
+      if not path_module.isabs(lv):
+        lv = path_module.join(prefix, lv)
         volumes[i] = lv + ':' + cv
       if volume_dirs is not None:
         volume_dirs.append(lv)
@@ -50,6 +50,7 @@ def run(argv, project_name, config=None):
     temp_config.close()
     command = ['docker-compose', '-p', project_name]
     if config:
+      log.info(yaml.dump(config))
       command += ['-f', temp_config.name]
     command += ['--project-directory', '.']
     command += argv

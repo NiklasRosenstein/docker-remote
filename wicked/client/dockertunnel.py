@@ -24,7 +24,8 @@ Creates an SSH tunnel to the docker daemon on another machine.
 """
 
 import contextlib
-from . import config, remote
+from . import remote
+from .. import config
 from ..core import tunnel
 
 

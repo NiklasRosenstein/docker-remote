@@ -43,7 +43,7 @@ class IoProtocolHandler:
   This class uses a binary communication protocol over stdin/stdout.
   """
 
-  def __init__(self, stdin=None, stdout=None, log_exception=True):
+  def __init__(self, stdin=None, stdout=None, log_exception=False):
     self.is_std = (stdin is None or stdout is None)
     self.stdin = stdin or sys.stdin.buffer
     self.stdout = stdout or sys.stdout.buffer

@@ -24,15 +24,13 @@ This module provides an API for querying project information on the current
 machine.
 """
 
-import filelock
 import os
 import nr.path
 import re
 import shutil
 
-from . import config
+from .. import config
 
-METADATA_FILE = '.wicked-project'
 PROJECT_ROOT = os.path.expanduser(config.get('host.project_root', '~'))
 
 
@@ -61,16 +59,12 @@ def get_project_path(name):
   return os.path.normpath(os.path.join(PROJECT_ROOT, name))
 
 
-def project_lock(name, metadata_file=None):
-  if metadata_file is None:
-    metadata_file = os.path.join(PROJECT_ROOT, name, METADATA_FILE)
-  if not os.path.isfile(metadata_file):
-    raise DoesNotExist(name)
-  return filelock.FileLock(metadata_file + '.lock')
+def get_volume_path(name, volume):
+  return os.path.join(get_project_path(name), volume)
 
 
 def project_exists(name):
-  return os.path.isfile(os.path.join(get_project_path(name), METADATA_FILE))
+  return os.path.isdir(get_project_path(name))
 
 
 def list_projects():
@@ -79,8 +73,7 @@ def list_projects():
   result = []
   for name in os.listdir(PROJECT_ROOT):
     path = os.path.join(PROJECT_ROOT, name)
-    metadata_file = os.path.join(path, METADATA_FILE)
-    if os.path.isfile(metadata_file):
+    if os.path.isdir(path):
       result.append(name)
   return result
 
@@ -89,18 +82,14 @@ def new_project(name):
   if not re.match('^[\w\d\-\_\.]+$', name):
     raise ValueError('invalid project name: {!r}'.format(name))
   project_path = get_project_path(name)
-  metadata_file = os.path.join(project_path, METADATA_FILE)
-  if os.path.isfile(metadata_file):
+  if os.path.isdir(project_path):
     raise AlreadyExists(name)
   _makedir(project_path)
-  with open(metadata_file, 'w') as fp:
-    fp.write('{}')
 
 
 def remove_project(name):
   project_path = get_project_path(name)
-  metadata_file = os.path.join(project_path, METADATA_FILE)
-  if not os.path.isfile(metadata_file):
+  if not os.path.isdir(project_path):
     raise DoesNotExist(name)
   # TODO: Check if containers are still running in this project and
   #       prevent deletion of the project until they are stopped.
