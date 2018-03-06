@@ -26,6 +26,7 @@ import os
 import nr.tempfile
 import subprocess
 import sys
+import textwrap
 import time
 import toml
 import yaml
@@ -93,10 +94,22 @@ def get_argument_parser(prog):
   docker = subp.add_parser('docker', help='Wrapper for docker.')
   docker.add_argument('argv', nargs='...')
 
-  compose = subp.add_parser('compose', help='Wrapper for docker compose.')
+  compose = subp.add_parser('compose', help='Wrapper for docker-compose.')
   compose.add_argument('-p', '--project-name')
   compose.add_argument('--rm', action='store_true', help='Remove the project after running.')
   compose.add_argument('argv', nargs='...')
+
+  install = subp.add_parser('install', help='Install docker-remote on a host. '
+    'This will run a bash script on the root user of the host specified with '
+    'the -H option or the `[remote] host` configuration to install the latest '
+    ' version of docker-remote via Pip (a user install). The script will '
+    'also ensure that the docker-remote command-line can be found by adding '
+    '$HOME/.local/bin to the PATH in .bashrc.')
+  install.add_argument('--via', default='pip3', help='Name of the Pip binary '
+    'to use for installation. Defaults to pip3.')
+  install.add_argument('--ref', help='Install the specified Git ref from '
+    'Github instead of installing docker-remote from PyPI.')
+  install.add_argument('--upgrade', action='store_true', help='Pass --upgrade to Pip.')
 
   return parser
 
@@ -257,6 +270,41 @@ def main(argv=None, prog=None):
           break
 
       return code
+
+  elif args.command == 'install':
+    host, user = client.get_remote_config()
+    if host == 'localhost' and not user:
+      print('No need to install docker-remote on the localhost again.')
+      return 0
+
+    commands = []
+    # Ensure that ~/.local/bin is in the PATH.
+    commands.append(textwrap.dedent('''
+      echo "$PATH" | grep "$HOME/.local/bin" >> /dev/null
+      if [ $? != 0 ] ; then
+        echo "$HOME/.local/bin not found in PATH. Adding to .bashrc ..."
+        sed -e '1iPATH="$HOME/.local/bin:$PATH"' -i .bashrc
+      else
+        echo "$HOME/.local/bin found in PATH"
+      fi
+    ''').strip())
+    # Install the package with Pip.
+    if args.ref:
+      req = 'git+https://github.com/NiklasRosenstein/docker-remote.git@' + args.ref
+    else:
+      req = 'docker-remote'
+    commands.append('{pip} install --user ' + req)
+    if args.upgrade:
+      commands[-1] += ' --upgrade'
+    commands.append('exit $?')
+
+    script = '\n'.join(x.format(pip=args.via) for x in commands)
+    command = ['ssh', client.get_remote_string(), 'bash', '-s']
+    log.info('Bash Script:\n\n%s\n', script)
+    log.info('$ ' + subp.shell_convert(command))
+    proc = subp.shell_popen(command, stdin=subprocess.PIPE)
+    proc.communicate(script.encode())
+    return proc.returncode
 
   else:
     parser.print_usage()
