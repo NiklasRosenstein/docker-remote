@@ -1,3 +1,7 @@
 *.egg
 *.egg-info
 .env
+Pipfile
+README.rst
+dist
+docker-compose.yml
