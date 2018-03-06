@@ -26,7 +26,7 @@ with your Docker Host.
       project:
         name: myapp
     
-    $ docker-compose up --build
+    $ docker-compose up --build --detach
     $ docker ps
 
 Check out the [Documentation](docs/) for installation instructions and

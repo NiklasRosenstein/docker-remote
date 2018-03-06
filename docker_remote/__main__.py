@@ -37,6 +37,18 @@ from .utils.namegen import namegen
 from .client import dockertunnel, dockercompose, log, remote
 from .host import projects
 
+MISSING_PROJECT_NAME = '''missing project name
+
+You can specify the project name with the -p, --project-name option or
+add it to your docker-compose.yml or docker-remote.toml:
+
+    # docker-compose.yml            # docker-remote.toml
+    version: '3'                    [project]
+    services: ...                   name = "my_app_name"
+    x-docker-remote:
+      project:
+        name: my_app_name'''
+
 
 def confirm(question):
   reply = input(question + ' [y/N] ').strip().lower()
@@ -50,8 +62,7 @@ def get_argument_parser(prog):
   # General options.
   parser.add_argument('--version', action='version', version=__version__)
   parser.add_argument('-p', '--project-name', help='The project name. If '
-    'this option is omitted, it will be read from the configuration file or '
-    'fall back on a random project name.')
+    'this option is omitted, it will be read from the configuration file.')
   parser.add_argument('-H', '--host', help='The name of the Docker host. '
     'If this option is omitted, it will be read from the configuration file '
     'or fall back on "localhost". In the case of "localhost", no SSH tunnel '
@@ -82,6 +93,7 @@ def get_argument_parser(prog):
   docker.add_argument('argv', nargs='...')
 
   compose = subp.add_parser('compose', help='Wrapper for docker compose.')
+  compose.add_argument('-p', '--project-name')
   compose.add_argument('--rm', action='store_true', help='Remove the project after running.')
   compose.add_argument('argv', nargs='...')
 
@@ -159,7 +171,7 @@ def main(argv=None, prog=None):
   elif args.command == 'rm':
     if not args.projects:
       if not args.project_name:
-        parser.error('missing project name')
+        parser.error(MISSING_PROJECT_NAME)
       args.projects = [args.project_name]
     with remote.new_client() as client:
       for project in args.projects:
@@ -181,10 +193,7 @@ def main(argv=None, prog=None):
       client = stack.enter_context(remote.new_client())
 
       if not args.project_name:
-        args.project_name = namegen()
-        while client.call(projects.project_exists, args.project_name):
-          args.project_name = namegen()
-        print('Created new project {!r}'.format(args.project_name))
+        parser.error(MISSING_PROJECT_NAME)
 
       if args.rm:
         stack.callback(client.call, projects.remove_project, args.project_name)
@@ -219,7 +228,7 @@ def main(argv=None, prog=None):
 
   elif args.command == 'scp':
     if not args.project_name:
-      parser.error('missing project name')
+      parser.error(MISSING_PROJECT_NAME)
     cfg = dockertunnel.get_ssh_config()
     if cfg['host'] == 'localhost':
       host_prefix = ''
