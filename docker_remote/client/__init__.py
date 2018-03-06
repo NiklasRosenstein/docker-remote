@@ -144,7 +144,9 @@ class Client:
   """
 
   def __init__(self, host=None, user=None, local_port=None, remote_port=None,
-               create_tunnel=True):
+               create_tunnel=None):
+    if create_tunnel is None:
+      create_tunnel = (os.getenv('DOCKER_REMOTE_SHELL', '') != '1')
     self.host = host
     self.user = user
     self.local_port = local_port
