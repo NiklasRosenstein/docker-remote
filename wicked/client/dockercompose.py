@@ -48,6 +48,7 @@ def run(argv, project_name, config=None):
     if config:
       temp_config.write(yaml.dump(config))
     temp_config.close()
+    env = os.environ.copy()
     command = ['docker-compose', '-p', project_name]
     if config:
       log.info(yaml.dump(config))
@@ -56,5 +57,11 @@ def run(argv, project_name, config=None):
     command += argv
     if os.name != 'nt' and not os.getenv('DOCKER_HOST'):
       command.insert(0, 'sudo')
+    if os.name == 'nt' and os.getenv('DOCKER_HOST'):
+      # Otherwise docker-compose will convert forward slashes to backward
+      # slashes on Windows, even though it is actually communicating with
+      # a Linux docker daemon.
+      # TODO: A cleaner way to check if we use Windows to Linux.
+      env['COMPOSE_CONVERT_WINDOWS_PATHS'] = '1'
     log.info('$ ' + shell_convert(command))
-    return shell_call(command)
+    return shell_call(command, env=env)
