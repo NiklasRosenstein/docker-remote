@@ -38,7 +38,7 @@ def get_remote_config():
   host = config.get('remote.host', 'localhost')
   user = config.get('remote.user', None)
   if host != 'localhost' and not user:
-    user = 'wicked'
+    user = 'docker-remote'
   return host, user
 
 
@@ -55,4 +55,4 @@ def new_client():
     return remotepy.LocalClient()
   else:
     password = config.get('remote.password', None)
-    return remotepy.SSHClient(host, user or 'wicked', password)
+    return remotepy.SSHClient(host, user or 'docker-remote', password)

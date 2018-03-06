@@ -23,7 +23,7 @@
 import os
 import toml
 
-CONFIG_FILENAME = os.path.expanduser('~/.wicked.toml')
+CONFIG_FILENAME = os.path.expanduser('~/.docker-remote.toml')
 
 try:
   with open(CONFIG_FILENAME) as fp:

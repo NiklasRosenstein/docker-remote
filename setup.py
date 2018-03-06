@@ -20,19 +20,19 @@ def readme():
   return ''
 
 setup(
-  name='docker-wicked',
+  name='docker-remote',
   version='1.0.0',
   license='MIT',
-  description='Wicked is a tool to create applications with docker-compose and control them remotely.',
+  description='Docker-remote is a wrapper for docker-compose to manage compositions on a remote machine easily.',
   long_description=readme(),
-  url='https://github.com/NiklasRosenstein/wicked',
+  url='https://github.com/NiklasRosenstein/docker-remote',
   author='Niklas Rosenstein',
   author_email='rosensteinniklas@gmail.com',
   packages=find_packages(),
   entry_points = {
     'console_scripts': [
-      'wicked = wicked.__main__:_entry_point',
-      'wicked.core.remotepy = wicked.core.remotepy:main'
+      'docker-remote = docker_remote.__main__:_entry_point',
+      'docker-remote.core.remotepy = docker_remote.core.remotepy:main'
     ]
   }
 )

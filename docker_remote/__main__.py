@@ -29,7 +29,7 @@ import time
 import toml
 import yaml
 
-from . import config
+from . import config, __version__
 from .core import remotepy
 from .core.subp import shell_convert, shell_call
 from .utils.namegen import namegen
@@ -47,6 +47,7 @@ def get_argument_parser(prog):
   subp = parser.add_subparsers(dest='command')
 
   # General options.
+  parser.add_argument('--version', action='version', version=__version__)
   parser.add_argument('-p', '--project-name', help='The project name. If '
     'this option is omitted, it will be read from the configuration file or '
     'fall back on a random project name.')
@@ -94,7 +95,7 @@ def main(argv=None, prog=None):
     log.logger.setLevel(log.logging.DEBUG)
 
   # Read the local configuration file.
-  config_file = 'wicked.toml'
+  config_file = 'docker-remote.toml'
   if os.path.isfile(config_file):
     config.read(config_file)
 

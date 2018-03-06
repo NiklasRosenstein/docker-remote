@@ -37,7 +37,7 @@ import threading
 import traceback
 from .subp import shell_popen
 
-TOOL_NAME = 'wicked.core.remotepy'
+TOOL_NAME = 'docker-remote.core.remotepy'
 
 
 class IoProtocolHandler:
