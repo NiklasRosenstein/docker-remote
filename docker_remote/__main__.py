@@ -98,6 +98,14 @@ def main(argv=None, prog=None):
   config_file = 'docker-remote.toml'
   if os.path.isfile(config_file):
     config.read(config_file)
+  docker_compose_file = 'docker-compose.yml'
+  if os.path.isfile(docker_compose_file):
+    with open(docker_compose_file, 'r') as fp:
+      docker_compose_data = yaml.load(fp)
+    if 'x-docker-remote' in docker_compose_data:
+      config.merge(config.data, docker_compose_data['x-docker-remote'])
+  else:
+    docker_compose_data = None
 
   if not args.host:
     args.host = remote.get_remote_display()
@@ -160,13 +168,10 @@ def main(argv=None, prog=None):
       if args.rm:
         stack.callback(client.call, projects.remove_project, args.project_name)
 
-      try:
-        compose_file = 'docker-compose.yml'
-        if not os.path.isfile(compose_file):
-          parser.error('file {!r} does not exist'.format(compose_file))
-        with open(compose_file) as fp:
-          data = yaml.load(fp)
+      if docker_compose_data is None:
+        parser.error('file {!r} does not exist'.format(docker_compose_file))
 
+      try:
         try:
           client.call(projects.new_project, args.project_name)
         except projects.AlreadyExists:
@@ -176,7 +181,7 @@ def main(argv=None, prog=None):
         volume_dirs = []
         path_module = client.call(remotepy.get_module_member, 'os.path', '__name__')
         path_module = __import__(path_module, fromlist=[None])
-        data = dockercompose.prefix_volumes(path_module, data, prefix, volume_dirs)
+        docker_compose_data = dockercompose.prefix_volumes(path_module, docker_compose_data, prefix, volume_dirs)
         client.call(projects.ensure_volume_dirs, args.project_name, volume_dirs)
 
         host, user = remote.get_remote_config()
@@ -186,7 +191,7 @@ def main(argv=None, prog=None):
           tun, docker_host = stack.enter_context(dockertunnel.new_tunnel())
           os.environ['DOCKER_HOST'] = docker_host
 
-        code = dockercompose.run(args.argv, args.project_name, data)
+        code = dockercompose.run(args.argv, args.project_name, docker_compose_data)
         success = (code == 0)
       except KeyboardInterrupt:
         pass
