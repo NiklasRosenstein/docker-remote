@@ -128,7 +128,7 @@ FROM python:latest
 RUN pip install bs4 html5lib requests psycopg2
 WORKDIR /app
 COPY . .
-ENTRYPOINT python scraper.py
+CMD python scraper.py
 ```
 
 Now we can run this composition with Docker Compose. Since we are inside the

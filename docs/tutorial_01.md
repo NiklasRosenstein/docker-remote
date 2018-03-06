@@ -26,7 +26,7 @@ FROM python:latest
 RUN pip install flask gunicorn
 WORKDIR /app
 COPY . .
-ENTRYPOINT gunicorn app:app -b 0.0.0.0:8000
+CMD gunicorn app:app -b 0.0.0.0:8000
 ```
 
 And then we add a Docker-compose configuration:
