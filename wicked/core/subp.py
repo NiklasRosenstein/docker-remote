@@ -23,13 +23,30 @@
 Subprocess tools.
 """
 
+import os
+import re
 import shlex
 import subprocess
 
 
+def quote(s):
+  """
+  Enhanced implementation of #shlex.quote() as it generates single-quotes
+  on Windows which can lead to problems.
+  """
+
+  if os.name == 'nt' and os.sep == '\\':
+    s = s.replace('"', '\\"')
+    if re.search('\s', s) or any(c in s for c in '<>'):
+      s = '"' + s + '"'
+  else:
+    s = shlex.quote(s)
+  return s
+
+
 def shell_convert(command):
   if not isinstance(command, str):
-    command = ' '.join(shlex.quote(x) for x in command)
+    command = ' '.join(quote(x) for x in command)
   return command
 
 
