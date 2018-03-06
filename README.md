@@ -8,15 +8,12 @@ Remote is a tool for managing Docker applications via [Compose] on another
 machine. It uses SSH tunnels to connect your Docker and Docker Compose client
 with your Docker Host.
 
-    $ docker-remote -H myhost.com shell
+    $ docker-remote shell
     Setting up a docker-compose alias...
     
-    $ alias
+    $ alias && echo $DOCKER_HOST
     alias docker-compose='docker-remote compose'
-
-    $ echo $DOCKER_HOST
     tcp://localhost:2375
-
     $ cat docker-compose.yml
     version: '3.4'
     services:

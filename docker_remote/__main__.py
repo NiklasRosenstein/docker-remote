@@ -205,10 +205,10 @@ def main(argv=None, prog=None):
         if not shell:
           shell = 'cmd' if os.name == 'nt' else 'bash'
         if 'cmd' in os.path.basename(shell) and os.name == 'nt':
-          command = [shell, '/k', 'echo Setting up docker-compose alias... && doskey docker-compose=docker-remote compose $*']
+          command = [shell, '/k', 'echo Setting up docker-compose alias... && echo && doskey docker-compose=docker-remote compose $*']
         else:
           tempfile = stack.enter_context(nr.tempfile.tempfile(text=True))
-          tempfile.write('echo "Setting up docker-compose alias..."\nalias docker-compose="docker-remote compose"\n')
+          tempfile.write('echo "Setting up docker-compose alias..."\necho\nalias docker-compose="docker-remote compose"\n')
           tempfile.close()
           command = [shell, '--rcfile', tempfile.name, '-i']
 
