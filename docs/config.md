@@ -14,7 +14,7 @@ Additionally, you can specify additional configuration values in the
 `x-docker-remote` field of the `docker-compose.yml` configuration. Example:
 
 ```yaml
-version: '3'
+version: '3.4'
 services:
   web:
     build: .
@@ -22,6 +22,12 @@ x-docker-remote:
   project:
     name: myapp
 ```
+
+> Note that Extension Fields were introduced in the Docker Compose file format
+> with version 3.4. You can still use it with previous file format versions as
+> Docker Remote will strip the field during the preprocessing stage. Just keep
+> in mind that the Compose file will then be invalid for direct use with
+> `docker-compose`.
 
 #### [project] name
 

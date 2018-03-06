@@ -18,7 +18,7 @@ with your Docker Host.
     tcp://localhost:2375
 
     $ cat docker-compose.yml
-    version: '3'
+    version: '3.4'
     services:
       web:
         image: nginx
