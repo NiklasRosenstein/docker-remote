@@ -1,8 +1,27 @@
 ## Configuration
 
-You can place the docker-remote configuration in `~/.docker-remote.toml` and `./docker-remote.toml`.
-The local configuration should be used only for a project if you want to use a
-different remote configuration or fix the project name.
+You can place the docker-remote configuration in `~/.docker-remote.toml` and
+`./docker-remote.toml`. The local configuration should be used only for a
+project if you want to use a different remote configuration or fix the project
+name. Example:
+
+```toml
+[project]
+name = "myapp"
+```
+
+Additionally, you can specify additional configuration values in the
+`x-docker-remote` field of the `docker-compose.yml` configuration. Example:
+
+```yaml
+version: '3'
+services:
+  web:
+    build: .
+x-docker-remote:
+  project:
+    name: myapp
+```
 
 #### [project] name
 
