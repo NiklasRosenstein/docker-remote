@@ -143,6 +143,7 @@ def main(argv=None, prog=None):
 
   elif args.command == 'docker':
     with dockertunnel.new_tunnel() as (tun, docker_host):
+      os.environ['DOCKER_HOST'] = docker_host
       return shell_call(['docker'] + args.argv)
 
   elif args.command == 'compose':
@@ -192,8 +193,11 @@ def main(argv=None, prog=None):
   elif args.command == 'scp':
     if not args.project_name:
       parser.error('missing project name')
-    host = remote.get_remote_display()
-    host_prefix = '' if host == 'localhost' else (host + ':')
+    cfg = dockertunnel.get_ssh_config()
+    if cfg['host'] == 'localhost':
+      host_prefix = ''
+    else:
+      host_prefix = '{user}@{host}:'.format(**cfg)
     with remote.new_client() as client:
       if not client.call(projects.project_exists, args.project_name):
         parser.error('project {!r} does not exist'.format(args.project_name))

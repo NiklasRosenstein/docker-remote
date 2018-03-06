@@ -54,4 +54,5 @@ def new_client():
   if host == 'localhost' and not user:
     return remotepy.LocalClient()
   else:
-    return remotepy.SSHClient(host, user or 'wicked')
+    password = config.get('remote.password', None)
+    return remotepy.SSHClient(host, user or 'wicked', password)

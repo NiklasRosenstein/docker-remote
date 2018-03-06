@@ -28,10 +28,12 @@ value.
 import argparse
 import paramiko
 import pickle
+import shlex
 import signal
 import subprocess
 import sys
 import struct
+import threading
 import traceback
 from .subp import shell_popen
 
@@ -115,18 +117,29 @@ class SSHClient:
   A client that runs this module on the remote via SSH.
   """
 
-  def __init__(self, host, username=None, password=None):
+  def __init__(self, host, username=None, password=None, read_stderr=True):
     self.host = host
     self.username = username
     self.password = password
+    self.read_stderr = read_stderr
 
   def __enter__(self):
     self._ssh = paramiko.SSHClient()
     self._ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     self._ssh.connect(self.host, username=self.username, password=self.password)
     command = [TOOL_NAME, '--ioproto']
-    stdin, stdout, stderr = self._ssh.exec_command(command)
-    stderr.close()
+    stdin, stdout, stderr = self._ssh.exec_command(' '.join(shlex.quote(x) for x in command))
+    if self.read_stderr:
+      def reader():
+        while True:
+          line = stderr.readline()
+          if not line: break
+          print('remote:', line)
+      self._reader_thread = threading.Thread(target=reader)
+      self._reader_thread.daemon = True
+      self._reader_thread.start()
+    else:
+      stderr.close()
     self._pipes = (stdin, stdout)
     self._client = IoProtocolClient(stdin, stdout)
     return self
