@@ -148,9 +148,18 @@ def main(argv=None, prog=None):
     if is_inside_docker_remote_shell():
       parser.error('It seems you are already inside a docker-remote shell.')
     is_shell = args.command == 'shell'
-    with dockertunnel.new_tunnel() as (tun, docker_host), contextlib.ExitStack() as stack:
+    with contextlib.ExitStack() as stack:
+
+      # Don't create a tunnel for a local connection.
+      host, user = remote.get_remote_config()
+      if host != 'localhost' or user:
+        tun, docker_host = stack.enter_context(dockertunnel.new_tunnel())
+      else:
+        tun, docker_host = None, None
+
       if is_shell:
-        os.environ['DOCKER_HOST'] = docker_host
+        if docker_host:
+          os.environ['DOCKER_HOST'] = docker_host
         shell = os.getenv('SHELL', '')
         if not shell:
           shell = 'cmd' if os.name == 'nt' else 'bash'
@@ -164,12 +173,15 @@ def main(argv=None, prog=None):
         log.info('$ ' + shell_convert(command))
         os.environ['DOCKER_REMOTE_SHELL'] = '1'
         return subprocess.call(command)
-      else:
+      elif docker_host:
         print('DOCKER_HOST={}'.format(docker_host))
         while tun.status() == 'alive':
           time.sleep(0.1)
         if tun.status() != 'ended':
           return 1
+      else:
+        print('localhost -- no tunnel required')
+        return 0
     assert False
 
   elif args.command == 'rm':

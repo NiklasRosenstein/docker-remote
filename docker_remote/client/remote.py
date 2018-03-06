@@ -30,13 +30,12 @@ def set_remote_config(host, user=None):
     if not host:
       user, host = '', user
   config.set('remote.host', host)
-  if user:
-    config.set('remote.user', user)
+  config.set('remote.user', user)
 
 
 def get_remote_config():
   host = config.get('remote.host', 'localhost')
-  user = config.get('remote.user', None)
+  user = config.get('remote.user', None) or None
   if host != 'localhost' and not user:
     user = 'docker-remote'
   return host, user
