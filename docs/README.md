@@ -1,4 +1,6 @@
-## docker-remote Documentation
+## Docker Remote Documentation
+
+![](logo.png)
 
 ### Table of Contents
 
