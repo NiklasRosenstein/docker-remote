@@ -37,7 +37,8 @@ __Features__
 * Allows you to compose and manage applications remotely
 * Pre-processes your Docker Compose configuration in order to place all
   named and relative volume names inside a project directory.
-* Automatically adds a `dockerhost` hostname to `/etc/hosts` (**To do** #4)
+* Ability to automatically add a `dockerhost` hostname to `/etc/hosts` for
+  all or selected services
 
 ---
 

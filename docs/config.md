@@ -35,6 +35,26 @@ The project name. Should only be specified in the local directories'
 `docker-remote.toml` configuration file. If no project name is explicitly specified
 on the command-line, this value is used.
 
+#### [project] dockerhost
+
+If this option is set to `true`, Docker Remote will automatically determine
+the IP address of the Docker Host machine and add it to the Docker Compose
+`extra_hosts` for every service. Alternatively, a list of service names can
+be specified in which case it is only added to the specified services.
+
+Example:
+
+```yaml
+services:
+  web:
+    build: .
+  db:
+    image: postgres
+x-docker-remote:
+  project:
+    dockerhost: ["web"]
+```
+
 #### [host] project_root
 
 This is used only on the docker-remote host machine. Defaults to the home directory

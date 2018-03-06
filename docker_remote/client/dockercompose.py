@@ -40,7 +40,14 @@ def prefix_volumes(path_module, config, prefix, volume_dirs=None):
         volumes[i] = lv + ':' + cv
       if volume_dirs is not None:
         volume_dirs.append(lv)
-  return config
+
+
+def add_dockerhost(config, ip, services=None):
+  for service in config.get('services', {}).items():
+    if services is None or service[0] in services:
+      extra_hosts = service[1].setdefault('extra_hosts', [])
+      log.info('Adding services.{}.extra_hosts: "dockerhost:{}"'.format(service[0], ip))
+      extra_hosts.append('dockerhost:{}'.format(ip))
 
 
 def run(argv, project_name, config=None):

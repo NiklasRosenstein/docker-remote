@@ -35,6 +35,7 @@ from .core import remotepy
 from .core.subp import shell_convert, shell_call
 from .client import dockertunnel, dockercompose, log, remote
 from .host import projects
+from .host.dockerhost import get_docker_host_ip
 
 MISSING_PROJECT_NAME = '''missing project name
 
@@ -214,7 +215,16 @@ def main(argv=None, prog=None):
         volume_dirs = []
         path_module = client.call(remotepy.get_module_member, 'os.path', '__name__')
         path_module = __import__(path_module, fromlist=[None])
-        docker_compose_data = dockercompose.prefix_volumes(path_module, docker_compose_data, prefix, volume_dirs)
+        dockercompose.prefix_volumes(path_module, docker_compose_data, prefix, volume_dirs)
+        dockerhost_config = config.get('project.dockerhost', False)
+        if dockerhost_config:
+          ip = client.call(get_docker_host_ip)
+          if not ip:
+            log.error('Unable to determine Docker Host IP address.')
+            return 1
+          services = dockerhost_config if isinstance(dockerhost_config, list) else None
+          dockercompose.add_dockerhost(docker_compose_data, ip, services)
+
         client.call(projects.ensure_volume_dirs, args.project_name, volume_dirs)
 
         host, user = remote.get_remote_config()
