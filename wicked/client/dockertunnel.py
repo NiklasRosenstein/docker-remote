@@ -49,4 +49,4 @@ def new_tunnel():
   cfg = get_ssh_config()
   with tunnel.SSHTunnel(cfg['local_port'], cfg['remote_port'], cfg['host'], cfg['user']) as tun:
     log.info('Creating tunnel [{local_port}] ==> [{user}@{host}:{remote_port}]...'.format(**cfg))
-    yield tun, 'tcp://localhost:{}'.format(local_port)
+    yield tun, 'tcp://localhost:{}'.format(cfg['local_port'])
