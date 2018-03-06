@@ -60,7 +60,6 @@ possible
 public
 real
 recent
-right
 small
 social
 special
@@ -89,7 +88,6 @@ life
 lot
 money
 month
-mother
 night
 number
 part
@@ -98,7 +96,6 @@ point
 problem
 program
 question
-right
 room
 school
 state
