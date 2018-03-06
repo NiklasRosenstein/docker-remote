@@ -30,12 +30,9 @@ import time
 import toml
 import yaml
 
-from . import config, __version__
-from .core import remotepy
-from .core.subp import shell_convert, shell_call
-from .client import dockertunnel, dockercompose, log, remote
-from .host import projects
-from .host.dockerhost import get_docker_host_ip
+from . import __version__, client, config
+from .client import log
+from .core import remotepy, subp
 
 MISSING_PROJECT_NAME = '''missing project name
 
@@ -115,9 +112,6 @@ def main(argv=None, prog=None):
     log.logger.setLevel(log.logging.DEBUG)
 
   # Read the local configuration file.
-  config_file = 'docker-remote.toml'
-  if os.path.isfile(config_file):
-    config.read(config_file)
   docker_compose_file = 'docker-compose.yml'
   if os.path.isfile(docker_compose_file):
     with open(docker_compose_file, 'r') as fp:
@@ -131,35 +125,69 @@ def main(argv=None, prog=None):
     docker_compose_data = None
 
   if not args.host:
-    args.host = remote.get_remote_display()
+    args.host = client.get_remote_string()
   if not args.project_name:
     args.project_name = config.get('project.name', None)
+    log.info('docker-remote project name: %s', args.project_name)
+  else:
+    config.set('project.name', args.project_name)
 
   if args.host:
-    remote.set_remote_config(args.host)
+    client.set_remote_config(args.host)
 
   if args.command == 'ls':
-    with remote.new_client() as client:
-      for project in client.call(projects.list_projects):
+    with client.Client() as cl:
+      for project in cl.list_projects():
         print(project)
     return 0
+
+  elif args.command == 'rm':
+    if not args.projects and not args.project_name:
+      parser.error(MISSING_PROJECT_NAME)
+    if not args.projects:
+      args.projects = [args.project_name]
+
+    status = 0
+    with client.Client(create_tunnel=False) as cl:
+      for project in (x.strip() for x in args.projects):
+        if not cl.project_exists(project):
+          log.error('project {!r} does not exist'.format(project))
+          status = 127
+          continue
+
+        question = 'Do you really want to remove the project {!r}?'.format(project)
+        if not args.yes and not confirm(question):
+          continue
+
+        try:
+          cl.remove_project(project)
+        except OSError as exc:
+          log.error(str(exc))
+          status = 127
+
+    return 0
+
+  elif args.command == 'docker':
+    with client.Client() as cl:
+      command = ['docker'] + args.argv
+      log.info('$ ' + subp.shell_convert(command))
+      return subp.shell_call(command)
+
+  elif args.command == 'compose':
+    if docker_compose_data is None:
+      parser.error('file {!r} does not exist'.format(docker_compose_file))
+    if not args.project_name:
+      parser.error(MISSING_PROJECT_NAME)
+    with client.Client() as cl:
+      return cl.compose(args.argv, docker_compose_data)
 
   elif args.command in ('tunnel', 'shell'):
     if is_inside_docker_remote_shell():
       parser.error('It seems you are already inside a docker-remote shell.')
     is_shell = args.command == 'shell'
-    with contextlib.ExitStack() as stack:
 
-      # Don't create a tunnel for a local connection.
-      host, user = remote.get_remote_config()
-      if host != 'localhost' or user:
-        tun, docker_host = stack.enter_context(dockertunnel.new_tunnel())
-      else:
-        tun, docker_host = None, None
-
+    with client.Client() as cl, contextlib.ExitStack() as stack:
       if is_shell:
-        if docker_host:
-          os.environ['DOCKER_HOST'] = docker_host
         shell = os.getenv('SHELL', '')
         if not shell:
           shell = 'cmd' if os.name == 'nt' else 'bash'
@@ -170,109 +198,65 @@ def main(argv=None, prog=None):
           tempfile.write('echo "Setting up docker-compose alias..."\nalias docker-compose="docker-remote compose"\n')
           tempfile.close()
           command = [shell, '--rcfile', tempfile.name, '-i']
-        log.info('$ ' + shell_convert(command))
+
+        log.info('$ ' + subp.shell_convert(command))
         os.environ['DOCKER_REMOTE_SHELL'] = '1'
-        return subprocess.call(command)
-      elif docker_host:
-        print('DOCKER_HOST={}'.format(docker_host))
+        return subp.shell_call(command)
+
+      elif cl.tunnel:
+        print('DOCKER_HOST={}'.format(cl.tunnel.docker_host))
         while tun.status() == 'alive':
           time.sleep(0.1)
         if tun.status() != 'ended':
           return 1
+
       else:
-        print('localhost -- no tunnel required')
         return 0
+
     assert False
-
-  elif args.command == 'rm':
-    if not args.projects:
-      if not args.project_name:
-        parser.error(MISSING_PROJECT_NAME)
-      args.projects = [args.project_name]
-    with remote.new_client() as client:
-      for project in args.projects:
-        project = project.strip()
-        if not client.call(projects.project_exists, project):
-          parser.error('project {!r} does not exist'.format(project))
-        if not args.yes and not confirm('Do you really want to remove the project {!r}?'.format(project)):
-          return 0
-        client.call(projects.remove_project, project)
-    return 0
-
-  elif args.command == 'docker':
-    with dockertunnel.new_tunnel() as (tun, docker_host):
-      os.environ['DOCKER_HOST'] = docker_host
-      return shell_call(['docker'] + args.argv)
-
-  elif args.command == 'compose':
-    with contextlib.ExitStack() as stack:
-      client = stack.enter_context(remote.new_client())
-
-      if not args.project_name:
-        parser.error(MISSING_PROJECT_NAME)
-
-      if args.rm:
-        stack.callback(client.call, projects.remove_project, args.project_name)
-
-      if docker_compose_data is None:
-        parser.error('file {!r} does not exist'.format(docker_compose_file))
-
-      try:
-        try:
-          client.call(projects.new_project, args.project_name)
-        except projects.AlreadyExists:
-          pass
-
-        prefix = client.call(projects.get_project_path, args.project_name)
-        volume_dirs = []
-        path_module = client.call(remotepy.get_module_member, 'os.path', '__name__')
-        path_module = __import__(path_module, fromlist=[None])
-        dockercompose.prefix_volumes(path_module, docker_compose_data, prefix, volume_dirs)
-        dockerhost_config = config.get('project.dockerhost', False)
-        if dockerhost_config:
-          ip = client.call(get_docker_host_ip)
-          if not ip:
-            log.error('Unable to determine Docker Host IP address.')
-            return 1
-          services = dockerhost_config if isinstance(dockerhost_config, list) else None
-          dockercompose.add_dockerhost(docker_compose_data, ip, services)
-
-        client.call(projects.ensure_volume_dirs, args.project_name, volume_dirs)
-
-        host, user = remote.get_remote_config()
-        if host == 'localhost' and not user:
-          pass
-        elif not is_inside_docker_remote_shell():
-          tun, docker_host = stack.enter_context(dockertunnel.new_tunnel())
-          os.environ['DOCKER_HOST'] = docker_host
-
-        code = dockercompose.run(args.argv, args.project_name, docker_compose_data)
-        success = (code == 0)
-      except KeyboardInterrupt:
-        pass
 
   elif args.command == 'scp':
     if not args.project_name:
       parser.error(MISSING_PROJECT_NAME)
-    cfg = dockertunnel.get_ssh_config()
-    if cfg['host'] == 'localhost':
+
+    host, user = client.get_remote_config()
+    if host == 'localhost' and not user:
       host_prefix = ''
     else:
-      host_prefix = '{user}@{host}:'.format(**cfg)
-    with remote.new_client() as client:
-      if not client.call(projects.project_exists, args.project_name):
+      host_prefix = '{}@{}:'.format(user, host)
+
+    with client.Client(create_tunnel=False) as cl:
+      if not cl.project_exists(args.project_name):
         parser.error('project {!r} does not exist'.format(args.project_name))
-      command = ['scp', '-r']
-      if args.volumes:
-        for volume in args.volumes:
-          volpath = client.call(projects.get_volume_path, args.project_name, volume)
-          command.append(host_prefix + volpath)
+
+      if len(args.volumes) == 1:
+        downloads = [
+          (cl.get_volume_path(args.project_name, args.volumes[0]), args.directory)
+        ]
+      elif args.volumes:
+        downloads = [
+          (cl.get_volume_path(args.project_name, vol), os.path.join(args.directory, vol))
+          for vol in args.volumes
+        ]
       else:
-        projpath = client.call(projects.get_project_path, args.project_name)
-        command.append(host_prefix + projpath)
-      command.append(args.directory)
-    log.info('$ ' + shell_convert(command))
-    return shell_call(command)
+        downloads = [(cl.get_project_path(args.project_name), args.directory)]
+
+      code = 0
+      for source_dir, dest_dir in downloads:
+        nr.path.makedirs(dest_dir)
+        if host == 'localhost' and not user:
+          command = ['cp', '-rv', source_dir, dest_dir]
+          cmd = subp.shell_convert(command)
+        else:
+          command1 = ['ssh', '{}@{}'.format(user, host), 'tar', '-czC', source_dir, '-f', '-', '.']
+          command2 = ['tar', '-vxzC', dest_dir]
+          cmd = subp.shell_convert(command1) + ' | ' + subp.shell_convert(command2)
+        log.info('$ ' + cmd)
+        code = subp.shell_call(cmd)
+        if code != 0:
+          break
+
+      return code
 
   else:
     parser.print_usage()

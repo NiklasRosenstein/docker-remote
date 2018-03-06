@@ -29,11 +29,12 @@ import time
 
 class SSHTunnel:
 
-  def __init__(self, local_port, remote_port, host, user=None):
-    self.local_port = local_port
-    self.remote_port = remote_port
+  def __init__(self, host, user, password, local_port, remote_port):
     self.host = host
     self.user = user
+    self.password = password
+    self.local_port = local_port
+    self.remote_port = remote_port
 
   def __repr__(self):
     return 'SSHTunnel({!r})'.format(self.ssh_command())
