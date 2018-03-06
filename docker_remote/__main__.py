@@ -104,6 +104,9 @@ def main(argv=None, prog=None):
       docker_compose_data = yaml.load(fp)
     if 'x-docker-remote' in docker_compose_data:
       config.merge(config.data, docker_compose_data['x-docker-remote'])
+      # Extension fields are supported by the file format specification,
+      # but apparently not by the implementation. See docker/compose#5753.
+      del docker_compose_data['x-docker-remote']
   else:
     docker_compose_data = None
 
