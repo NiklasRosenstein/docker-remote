@@ -33,7 +33,6 @@ import yaml
 from . import config, __version__
 from .core import remotepy
 from .core.subp import shell_convert, shell_call
-from .utils.namegen import namegen
 from .client import dockertunnel, dockercompose, log, remote
 from .host import projects
 
