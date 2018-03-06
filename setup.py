@@ -19,6 +19,11 @@ def readme():
       return fp.read()
   return ''
 
+def requirements():
+  with open('requirements.txt') as fp:
+    lines = [x.strip() for x in fp.readlines()]
+    return [x for x in lines if x]
+
 setup(
   name='docker-remote',
   version='1.0.0',
@@ -29,6 +34,7 @@ setup(
   author='Niklas Rosenstein',
   author_email='rosensteinniklas@gmail.com',
   packages=find_packages(),
+  install_requires=requirements(),
   entry_points = {
     'console_scripts': [
       'docker-remote = docker_remote.__main__:_entry_point',
