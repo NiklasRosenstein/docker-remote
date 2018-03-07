@@ -254,7 +254,7 @@ class Client:
       if os.name != 'nt' and not self.tunnel:
         command.insert(0, 'sudo')
 
-      if os.name == 'nt' and self.tunnel:
+      if os.name == 'nt' and (self.tunnel or (os.getenv('DOCKER_REMOTE_SHELL', '') == '1')):
         # Otherwise docker-compose will convert forward slashes to backward
         # slashes on Windows, even though it is actually communicating with
         # a Linux docker daemon.
