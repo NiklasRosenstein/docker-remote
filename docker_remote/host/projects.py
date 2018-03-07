@@ -31,7 +31,7 @@ import shutil
 
 from .. import config
 
-PROJECT_ROOT = os.path.expanduser(config.get('host.project_root', '~'))
+PROJECT_ROOT = os.path.expanduser(config.get('host.project_root', '~/docker-remote-projects'))
 
 
 class ProjectError(Exception):

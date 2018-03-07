@@ -23,12 +23,12 @@ x-docker-remote:
     name: myapp
 ```
 
-#### [project] name
+#### project:name
 
 The project name. If no project name is explicitly specified on the
 command-line, this value is used.
 
-#### [project] add_dockerhost
+#### project:add_dockerhost
 
 If this option is set to `true`, Docker Remote will automatically determine
 the IP address of the Docker Host machine and add it to the Docker Compose
@@ -49,33 +49,33 @@ x-docker-remote:
     add_dockerhost: ["web"]
 ```
 
-#### [host] project_root
+#### host:project_root
 
-This is used only on the docker-remote host machine. Defaults to the home directory
-of the user through which the docker-remote command-line is called (which is usually
-the `docker-remote` user). This is the directory where project directories will be
-located. Currently project directories are only used for volumes.
+This is used only on the docker-remote host machine. Defaults to
+`~/docker-remote-projects`, which is usually in the root's home directory.
+This is the directory where project directories will be located. Currently
+project directories are only used for volumes.
 
-#### [remote] host
+#### remote:host
 
 The host name of the remote machine. Defaults to `localhost`. In the case of
 `localhost`, your machine does not need an SSH server installed.
 
-#### [remote] user
+#### remote:user
 
 The user name. Not used if `[remote] host` is `localhost`. Defaults to
 `docker-remote`. Note that this is independent from the SSH tunnel username option,
 which defaults to `root`.
 
-#### [remote] password
+#### remote:password
 
 The password of the user on the `[remote] host`.
 
-#### [tunnel] local_port
+#### tunnel:local_port
 
 The local port to bind the SSH tunnel to. Defaults to `2375`.
 
-#### [tunnel] remote_port
+#### tunnel:remote_port
 
 The remote port to bind the SSH tunnel to. Defaults to the
 `/var/run/docker.sock` socket file.
