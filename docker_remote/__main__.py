@@ -28,7 +28,6 @@ import subprocess
 import sys
 import textwrap
 import time
-import toml
 import yaml
 
 from . import __version__, client, config
@@ -38,11 +37,11 @@ from .core import remotepy, subp
 MISSING_PROJECT_NAME = '''missing project name
 
 You can specify the project name with the -p, --project-name option or
-add it to your docker-compose.yml or docker-remote.toml:
+add it to your docker-compose.yml or docker-remote.yml:
 
-    # docker-compose.yml            # docker-remote.toml
-    version: '3'                    [project]
-    services: ...                   name = "my_app_name"
+    # docker-compose.yml            # docker-remote.yml
+    version: '3'                    project:
+    services: ...                     name: my_app_name
     x-docker-remote:
       project:
         name: my_app_name'''

@@ -24,10 +24,9 @@ the `$HOME/.local/bin` directory is in your `PATH`.
     docker-remote -H myhost.com install --via pip3.6 --ref master
 
 Note that you can skip the `-H myhost.com` if you configured the host in
-the `~/.docker-remote.toml` configuration file.
+the `~/.docker-remote.yml` configuration file.
 
-```toml
-[remote]
-host = "myhost.com"
+```yaml
+remote:
+  host: myhost.com
 ```
-

@@ -21,13 +21,13 @@
 # IN THE SOFTWARE.
 
 import os
-import toml
+import yaml
 
-CONFIG_FILENAME = os.path.expanduser('~/.docker-remote.toml')
+CONFIG_FILENAME = os.path.expanduser('~/.docker-remote.yml')
 
 try:
   with open(CONFIG_FILENAME) as fp:
-    data = toml.load(fp)
+    data = yaml.load(fp)
   del fp
 except FileNotFoundError:
   data = {}
@@ -49,7 +49,7 @@ def merge(a, b):
 
 def read(filename):
   with open(filename) as fp:
-    merge(data, toml.load(fp))
+    merge(data, yaml.load(fp))
 
 
 def get(key, default=NotImplemented):

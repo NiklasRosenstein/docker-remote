@@ -1,6 +1,6 @@
 ## Configuration
 
-You can place the global docker-remote configuration in `~/.docker-remote.toml`.
+You can place the global docker-remote configuration in `~/.docker-remote.yml`.
 Note that it is not recommended to put any project-specific configuration
 values into that file.
 

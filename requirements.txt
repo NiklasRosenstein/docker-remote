@@ -1,4 +1,2 @@
-nr
-paramiko
-PyYAML
-toml
+nr>=2.0.1
+PyYAML>=3.12
