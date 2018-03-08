@@ -26,7 +26,6 @@ value.
 """
 
 import argparse
-import paramiko
 import pickle
 import shlex
 import signal
@@ -114,37 +113,27 @@ class IoProtocolClient:
 
 class SSHClient:
   """
-  A client that runs this module on the remote via SSH.
+  A client that runs this module on the remote via OpenSSH.
   """
 
-  def __init__(self, host, username=None, password=None, read_stderr=True,
-               use_openssh=True):
+  def __init__(self, host, username=None, password=None, read_stderr=True):
     self.host = host
     self.username = username
     self.password = password
     self.read_stderr = read_stderr
-    self.use_openssh = use_openssh
 
-    if password and use_openssh:
+    if password:
       raise NotImplementedError('can not use OpenSSH with password')
 
   def __enter__(self):
-    if self.use_openssh:
-      host = self.host
-      if self.username:
-        host = '{}@{}'.format(self.username, host)
-      command = ['ssh', host, TOOL_NAME, '--ioproto']
-      self._proc = shell_popen(command, stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-      stdin, stdout, stderr = self._proc.stdin, self._proc.stdout, self._proc.stderr
-      self._pipes = (stdin, stdout)
-    else:
-      self._ssh = paramiko.SSHClient()
-      self._ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-      self._ssh.connect(self.host, username=self.username, password=self.password)
-      command = [TOOL_NAME, '--ioproto']
-      stdin, stdout, stderr = self._ssh.exec_command(' '.join(shlex.quote(x) for x in command))
-      self._pipes = (stdin, stdout)
+    host = self.host
+    if self.username:
+      host = '{}@{}'.format(self.username, host)
+    command = ['ssh', host, TOOL_NAME, '--ioproto']
+    self._proc = shell_popen(command, stdin=subprocess.PIPE,
+      stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdin, stdout, stderr = self._proc.stdin, self._proc.stdout, self._proc.stderr
+    self._pipes = (stdin, stdout)
 
     if self.read_stderr:
       def reader():
@@ -163,11 +152,8 @@ class SSHClient:
 
   def __exit__(self, *a):
     [x.close() for x in self._pipes]
-    if self.use_openssh:
-      self._proc.terminate()
-      self._proc.wait()
-    else:
-      self._ssh.close()
+    self._proc.terminate()
+    self._proc.wait()
 
   def call(self, *args, **kwargs):
     return self._client.call(*args, **kwargs)
