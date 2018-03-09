@@ -1,4 +1,4 @@
-# Tutorial 1: A simple web app
+# Tutorial 1: A simple Python web app
 
 In this tutorial, we will show the process of creating a simple Python web
 application and composing with `docker-remote compose`. Make sure that you
