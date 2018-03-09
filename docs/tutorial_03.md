@@ -8,10 +8,10 @@ Let's start by creating our `package.json` file:
 
 ```json
 {
-  "name": "docker_node_app",
+  "name": "myapp",
   "version": "1.0.0",
   "description": "Node-App on Docker-Remote",
-  "author": "Felix Wohnhaas <felix.wohnhaas@outlook.com>",
+  "author": "First Last <first.last@example.com>",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
