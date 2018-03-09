@@ -1,4 +1,4 @@
-# Tutorial 3: A simple node web app
+# Tutorial 3: A simple Node web app
 
 In this tutorial, we will show the process of creating a simple Node web
 application and composing with `docker-remote compose`. Make sure that you
