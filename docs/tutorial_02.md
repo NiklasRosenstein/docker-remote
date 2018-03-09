@@ -1,4 +1,4 @@
-## Tutorial 2: Web scraper
+## Tutorial 2: Python web scraper
 
 Docker-remote is also usefult to run one-off applications. If the data that
 they produce is stored on mapped volumes, these volumes can then be downloaded
