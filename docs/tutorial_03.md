@@ -46,8 +46,7 @@ app.listen(PORT, HOST);
 console.log(`Node App running on http://${HOST}:${PORT}`);
 ```
 
-Next, let us create a Dockerfile that creates an image with Python and the
-gunicorn web server:
+Next, let us create a Dockerfile that creates an image with Node:
 
 ```Dockerfile
 # Dockerfile
