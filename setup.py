@@ -26,7 +26,7 @@ def requirements():
 
 setup(
   name='docker-remote',
-  version='1.0.0',
+  version='1.0.1',
   license='MIT',
   description='Docker-remote is a wrapper for docker-compose to manage compositions on a remote machine easily.',
   long_description=readme(),
