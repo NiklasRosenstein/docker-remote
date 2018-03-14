@@ -193,20 +193,40 @@ class Client:
     created.
     """
 
+    version = compose_config.get('version')
     project_name = config.get('project.name')
     prefix = self.remote.call(host.projects.get_project_path, project_name)
     volume_dirs = []
 
+    if not version:  # Compose file 1
+      services = compose_config
+    elif version.split('.')[0] in ('2', '3'):
+      services = compose_config.get('services', {})
+    else:
+      raise RuntimeError('unknown compose file version: {!r}'.format(version))
+
     # Update relative volumes.
-    for service in compose_config.get('services', {}).items():
+    for service in services.items():
       volumes = service[1].get('volumes', [])
       for i, volume in enumerate(volumes):
-        if ':' not in volume:
+        if isinstance(volume, str):
+          source = volume
+          def update(x): volumes[i] = x
+        elif isinstance(volume, dict):
+          source = volume['source']
+          def update(x): volume['source'] = x
+        else:
+          continue
+
+        if ':' not in source:
           raise ValueError('invalid volume: {!r}'.format(volume))
-        lv, cv = volume.rpartition(':')[::2]
-        if not self.remote_path.isabs(lv):
+        lv, cv = source.rpartition(':')[::2]
+
+        # Only convert relative paths that are NOT named volumes.
+        if not self.remote_path.isabs(lv) and '/' in lv:
           lv = self.remote_path.join(prefix, lv)
-          volumes[i] = lv + ':' + cv
+          update(lv + ':' + cv)
+
         if volume_dirs is not None:
           volume_dirs.append(lv)
 
@@ -237,6 +257,7 @@ class Client:
         fp = stack.enter_context(nr.tempfile.tempfile('.yaml', text=True))
         fp.write(yaml.dump(compose_config))
         fp.close()
+        log.debug('Final docker-compose.yml:\n\n%s', yaml.dump(compose_config))
       else:
         fp = None
 
