@@ -7,10 +7,12 @@
 ![](docs/logo.png)
 
   [Compose]: https://github.com/docker/compose
+  [Machine]: https://docs.docker.com/machine/
 
 Remote is a tool for managing Docker applications via [Compose] on another
 machine. It uses SSH tunnels to connect your Docker and Docker Compose client
-with your Docker Host.
+with your Docker Host. It is useful as an alternative to [Machine] or to
+deploy an app on a server without manually loggin in via SSH.
 
     $ docker-remote shell
     Setting up a docker-compose alias...
