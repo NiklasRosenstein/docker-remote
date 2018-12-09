@@ -71,6 +71,10 @@ which defaults to `root`.
 
 The password of the user on the `[remote] host`.
 
+#### remote:remotepy
+
+Name of or path to the remotepy tool (defaults to `docker-remote.core.remotepy`).
+
 #### tunnel:local_port
 
 The local port to bind the SSH tunnel to. Defaults to `2375`.

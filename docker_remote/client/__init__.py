@@ -68,7 +68,7 @@ def get_remote_string():
   return host
 
 
-def create_remotepy_client(host=None, user=None):
+def create_remotepy_client(host=None, user=None, tool_name=None):
   """
   Creates a new RemotePy client for the configured host.
   """
@@ -81,7 +81,7 @@ def create_remotepy_client(host=None, user=None):
     return remotepy.LocalClient()
   else:
     log.info('Creating SSH RemotePy client ({}@{}).'.format(user, host))
-    return remotepy.SSHClient(host, user, None)
+    return remotepy.SSHClient(host, user, None, tool_name=tool_name)
 
 
 def create_docker_tunnel(host=None, user=None, local_port=None,
@@ -144,7 +144,7 @@ class Client:
   """
 
   def __init__(self, host=None, user=None, local_port=None, remote_port=None,
-               create_tunnel=None):
+               create_tunnel=None, tool_name=None):
     if create_tunnel is None:
       create_tunnel = (os.getenv('DOCKER_REMOTE_SHELL', '') != '1')
     self.host = host
@@ -152,6 +152,7 @@ class Client:
     self.local_port = local_port
     self.remote_port = remote_port
     self.create_tunnel = create_tunnel
+    self.tool_name = tool_name or config.get('remote.remotepy', None)
     self.remote = None
     self.tunnel = None
     self._stack = None
@@ -160,7 +161,7 @@ class Client:
   def __enter__(self):
     self._stack = contextlib.ExitStack()
     self._stack.__enter__()
-    self.remote = self._stack.enter_context(create_remotepy_client(self.host, self.user))
+    self.remote = self._stack.enter_context(create_remotepy_client(self.host, self.user, self.tool_name))
     if self.create_tunnel:
       self.tunnel = self._stack.enter_context(create_docker_tunnel(self.host, self.user, self.local_port, self.remote_port))
     if self.tunnel and self.tunnel.docker_host:

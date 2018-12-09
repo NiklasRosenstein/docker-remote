@@ -116,11 +116,12 @@ class SSHClient:
   A client that runs this module on the remote via OpenSSH.
   """
 
-  def __init__(self, host, username=None, password=None, read_stderr=True):
+  def __init__(self, host, username=None, password=None, read_stderr=True, tool_name=None):
     self.host = host
     self.username = username
     self.password = password
     self.read_stderr = read_stderr
+    self.tool_name = tool_name or TOOL_NAME
 
     if password:
       raise NotImplementedError('can not use OpenSSH with password')
@@ -129,7 +130,7 @@ class SSHClient:
     host = self.host
     if self.username:
       host = '{}@{}'.format(self.username, host)
-    command = ['ssh', host, TOOL_NAME, '--ioproto']
+    command = ['ssh', host, self.tool_name, '--ioproto']
     self._proc = shell_popen(command, stdin=subprocess.PIPE,
       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdin, stdout, stderr = self._proc.stdin, self._proc.stdout, self._proc.stderr
