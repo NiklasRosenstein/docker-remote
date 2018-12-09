@@ -22,7 +22,7 @@
 
 import contextlib
 import os
-import nr.tempfile
+import nr.fs
 import yaml
 from . import log
 from .. import config, host
@@ -254,7 +254,7 @@ class Client:
       if compose_config is not None:
         if preprocess:
           self.process_docker_compose(compose_config)
-        fp = stack.enter_context(nr.tempfile.tempfile('.yaml', text=True))
+        fp = stack.enter_context(nr.fs.tempfile('.yaml', text=True))
         fp.write(yaml.dump(compose_config))
         fp.close()
         log.debug('Final docker-compose.yml:\n\n%s', yaml.dump(compose_config))

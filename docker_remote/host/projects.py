@@ -25,7 +25,7 @@ machine.
 """
 
 import os
-import nr.path
+import nr.fs
 import re
 import shutil
 
@@ -101,4 +101,4 @@ def ensure_volume_dirs(name, dirs):
   for dirname in dirs:
     if not os.path.isabs(dirname):
       dirname = os.path.join(project_path, dirname)
-    nr.path.makedirs(dirname)
+    nr.fs.makedirs(dirname)

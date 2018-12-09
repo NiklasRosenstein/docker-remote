@@ -23,7 +23,7 @@
 import argparse
 import contextlib
 import os
-import nr.tempfile
+import nr.fs
 import subprocess
 import sys
 import textwrap
@@ -206,7 +206,7 @@ def main(argv=None, prog=None):
         if 'cmd' in os.path.basename(shell) and os.name == 'nt':
           command = [shell, '/k', 'echo Setting up docker-compose alias... && echo && doskey docker-compose=docker-remote compose $*']
         else:
-          tempfile = stack.enter_context(nr.tempfile.tempfile(text=True))
+          tempfile = stack.enter_context(nr.fs.tempfile(text=True))
           tempfile.write('echo "Setting up docker-compose alias..."\necho\nalias docker-compose="docker-remote compose"\n')
           tempfile.close()
           command = [shell, '--rcfile', tempfile.name, '-i']
@@ -255,7 +255,7 @@ def main(argv=None, prog=None):
 
       code = 0
       for source_dir, dest_dir in downloads:
-        nr.path.makedirs(dest_dir)
+        nr.fs.makedirs(dest_dir)
         if host == 'localhost' and not user:
           command = ['cp', '-rv', source_dir, dest_dir]
           cmd = subp.shell_convert(command)
