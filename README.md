@@ -14,12 +14,6 @@ machine. It uses SSH tunnels to connect your Docker and Docker Compose client
 with your Docker Host. It is useful as an alternative to [Machine] or to
 deploy an app on a server without manually loggin in via SSH.
 
-    $ docker-remote shell
-    Setting up a docker-compose alias...
-    
-    $ alias && echo $DOCKER_HOST
-    alias docker-compose='docker-remote compose'
-    tcp://localhost:2375
     $ cat docker-compose.yml
     version: '3.4'
     services:
@@ -29,8 +23,34 @@ deploy an app on a server without manually loggin in via SSH.
       project:
         name: myapp
     
-    $ docker-compose up --build --detach
+    $ docker-remote compose up --build --detach
+    $ docker-remote docker ps
+
+Docker Remote sets the `DOCKER_HOST` environment variable when invoking
+`docker` or `docker-compose`. You can use `docker-remote shell` to enter
+a shell with a tunnel set up and the environment variable set, then omit
+the `docker-remote` prefix on Docker commands.
+
+    $ docker-remote shell
+    Setting up a docker-compose alias...
+    
+    $ alias && echo $DOCKER_HOST
+    alias docker-compose='docker-remote compose'
+    tcp://localhost:2375
+
     $ docker ps
+
+The host to which a connection is opened can be specified in the
+`x-docker-remote` section of the Docker Compose configuration or in the
+`~/.docker-remote.yml` configuration file.
+
+    remote:
+      host: myhost.org
+      user: me
+      remotepy: /home/me/.local/bin/docker-remote.core.remotepy
+
+The `remote.remotepy` option is necessary if the `docker-remote.core.remotepy`
+command is not in the `PATH` of your user.
 
 Check out the [Documentation](docs/) for installation instructions and
 tutorials.
