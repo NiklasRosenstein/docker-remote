@@ -1,40 +1,26 @@
 
-import os
-import sys
 from setuptools import setup, find_packages
 
-def readme():
-  if os.path.isfile('README.md') and any('dist' in x for x in sys.argv[1:]):
-    if os.system('pandoc -s README.md -o README.rst') != 0:
-      print('-----------------------------------------------------------------')
-      print('WARNING: README.rst could not be generated, pandoc command failed')
-      print('-----------------------------------------------------------------')
-      if sys.stdout.isatty():
-        input("Enter to continue... ")
-    else:
-      print("Generated README.rst with Pandoc")
+import io
+import os
+import sys
 
-  if os.path.isfile('README.rst'):
-    with open('README.rst') as fp:
-      return fp.read()
-  return ''
 
-def requirements():
-  with open('requirements.txt') as fp:
-    lines = [x.strip() for x in fp.readlines()]
-    return [x for x in lines if x]
+with io.open('README.md', encoding='utf8') as fp:
+  readme = fp.read()
+
 
 setup(
   name='docker-remote',
   version='1.0.1',
   license='MIT',
   description='Docker-remote is a wrapper for docker-compose to manage compositions on a remote machine easily.',
-  long_description=readme(),
+  long_description=readme,
   url='https://github.com/NiklasRosenstein/docker-remote',
   author='Niklas Rosenstein',
   author_email='rosensteinniklas@gmail.com',
   packages=find_packages(),
-  install_requires=requirements(),
+  install_requires=['nr.fs>=1.1.0', 'PyYAML>=3.12'],
   entry_points = {
     'console_scripts': [
       'docker-remote = docker_remote.__main__:_entry_point',
