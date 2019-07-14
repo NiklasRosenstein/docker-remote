@@ -27,7 +27,7 @@ CONFIG_FILENAME = os.path.expanduser('~/.docker-remote.yml')
 
 try:
   with open(CONFIG_FILENAME) as fp:
-    data = yaml.load(fp)
+    data = yaml.safe_load(fp)
   del fp
 except FileNotFoundError:
   data = {}
@@ -49,7 +49,7 @@ def merge(a, b):
 
 def read(filename):
   with open(filename) as fp:
-    merge(data, yaml.load(fp))
+    merge(data, yaml.safe_load(fp))
 
 
 def get(key, default=NotImplemented):
