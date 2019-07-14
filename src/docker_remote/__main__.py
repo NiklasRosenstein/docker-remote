@@ -301,8 +301,6 @@ def main(argv=None, prog=None):
         print('Sending to host: "{}" ...'.format(host_archive_filename))
         client.send_file(fp.name, host_archive_filename)
 
-        shutil.copyfile(fp.name, '/Users/nrosenstein/Desktop/test.zip')
-
     # Otherwise, we'll download the matching version from GitHub.
     else:
       url = PROJECT_DOWNLOAD_URL.format(ref='v' + __version__)
