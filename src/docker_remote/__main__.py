@@ -24,6 +24,8 @@ import argparse
 import contextlib
 import os
 import nr.fs
+import requests
+import shutil
 import subprocess
 import sys
 import textwrap
@@ -33,7 +35,7 @@ import yaml
 from . import __version__, client, config
 from .client import log
 from .core import remotepy
-from .core.subprocess import shell_call, shell_convert
+from .core.subprocess import shell_call, shell_capture, shell_convert
 
 MISSING_PROJECT_NAME = '''missing project name
 
@@ -47,7 +49,7 @@ add it to your docker-compose.yml or docker-remote.yml:
       project:
         name: my_app_name'''
 
-PROJECT_GIT_URL = 'git+https://github.com/NiklasRosenstein/docker-remote.git'
+PROJECT_DOWNLOAD_URL = 'https://github.com/NiklasRosenstein/docker-remote/archive/{ref}.zip'
 
 
 def confirm(question):
@@ -109,9 +111,7 @@ def get_argument_parser(prog):
     '$HOME/.local/bin to the PATH in .bashrc.')
   install.add_argument('--via', default='pip3', help='Name of the Pip binary '
     'to use for installation. Defaults to pip3.')
-  install.add_argument('--ref', help='Install the specified Git ref from '
-    'Github instead of installing docker-remote from PyPI.')
-  install.add_argument('--upgrade', action='store_true', help='Pass --upgrade to Pip.')
+  install.add_argument('--no-current-state', action='store_true')
 
   info = subparsers.add_parser('info', help='Show configuration in the current context.')
 
@@ -283,6 +283,40 @@ def main(argv=None, prog=None):
 
     commands = []
 
+    host_archive_filename = '/tmp/docker-remote-{version}.zip'
+
+    # Check if we're in a Git directory.
+    directory = os.path.dirname(__file__)
+    directory, code = shell_capture(['git', 'rev-parse', '--show-toplevel'], cwd=directory)
+    if not args.no_current_state and code == 0:
+      print('Collecting current repository state ...')
+      ref = shell_capture(['git', 'stash', 'create'], cwd=directory, check=True)[0]
+      with nr.fs.tempfile(suffix='.zip') as fp:
+        fp.close()
+        shell_call(['git', 'archive', '--format=zip', ref, '-o', fp.name], cwd=directory)
+
+        description = shell_capture(['git', 'describe', '--tag'], cwd=directory)[0]
+        host_archive_filename = host_archive_filename.format(version=description)
+
+        print('Sending to host: "{}" ...'.format(host_archive_filename))
+        client.send_file(fp.name, host_archive_filename)
+
+        shutil.copyfile(fp.name, '/Users/nrosenstein/Desktop/test.zip')
+
+    # Otherwise, we'll download the matching version from GitHub.
+    else:
+      url = PROJECT_DOWNLOAD_URL.format(ref='v' + __version__)
+      print('Fetching "{}" ...'.format(url))
+      with nr.fs.tempfile(suffix='.zip') as fp:
+        with requests.get(url, stream=True) as resp:
+          shutil.copyfileobj(resp.raw, fp)
+        fp.close()
+
+        host_archive_filename = host_archive_filename.format(version=__version__)
+
+        print('Sending to host: "{}" ...'.format(host_archive_filename))
+        client.send_file(fp.name, host_archive_filename)
+
     # Ensure that ~/.local/bin is in the PATH.
     commands.append(textwrap.dedent('''
       echo "$PATH" | grep "$HOME/.local/bin" >> /dev/null
@@ -293,13 +327,9 @@ def main(argv=None, prog=None):
     ''').strip())
 
     # Install the package with Pip.
-    if not args.ref:
-      args.ref = 'v' + __version__
-    req = '{}@{}'.format(PROJECT_GIT_URL, args.ref)
-    commands.append('{pip} install --user ' + req)
-    if args.upgrade:
-      commands[-1] += ' --upgrade'
+    commands.append('{pip} install --upgrade --user "' + host_archive_filename + '"')
 
+    commands.append('rm "' + host_archive_filename + '"')
     commands.append('exit $?')
 
     script = '\n'.join(x.format(pip=args.via) for x in commands)

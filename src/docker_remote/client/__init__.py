@@ -115,6 +115,11 @@ def run_bash_script(script):
   return proc.returncode
 
 
+def send_file(src, dst):
+  command = ['scp', src, get_remote_string() + ':' + dst]
+  return shell_call(command)
+
+
 class DockerTunnel(tunnel.SSHTunnel):
 
   __is_empty = False

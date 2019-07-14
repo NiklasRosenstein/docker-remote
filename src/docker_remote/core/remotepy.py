@@ -25,6 +25,8 @@ machine by pickling the function to be called, its arguments and the return
 value.
 """
 
+from __future__ import absolute_import
+
 import argparse
 import pickle
 import shlex
