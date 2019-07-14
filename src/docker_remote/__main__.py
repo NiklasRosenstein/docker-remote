@@ -113,6 +113,9 @@ def get_argument_parser(prog):
   install.add_argument('--no-current-state', action='store_true')
 
   info = subparsers.add_parser('info', help='Show configuration in the current context.')
+  info.add_argument('--host-version', action='store_true')
+
+  render = subparsers.add_parser('render', help='Render the current docker-compose.yml')
 
   return parser
 
@@ -189,13 +192,20 @@ def main(argv=None, prog=None):
       log.info('$ ' + shell_convert(command))
       return shell_call(command)
 
-  elif args.command == 'compose':
+  elif args.command in ('compose', 'render'):
     if docker_compose_data is None:
       parser.error('file {!r} does not exist'.format(docker_compose_file))
     if not args.project_name:
       parser.error(MISSING_PROJECT_NAME)
     with client.Client() as cl:
-      return cl.compose(args.argv, docker_compose_data)
+      if args.command == 'compose':
+          return cl.compose(args.argv, docker_compose_data)
+      elif args.command == 'render':
+        cl.process_docker_compose(docker_compose_data)
+        print(yaml.dump(docker_compose_data))
+      else:
+        assert False, args.command
+    return 0
 
   elif args.command in ('tunnel', 'shell'):
     if is_inside_docker_remote_shell():
@@ -333,9 +343,11 @@ def main(argv=None, prog=None):
     return client.run_bash_script(script)
 
   elif args.command == 'info':
-    print(yaml.dump(config.data))
-    with client.Client() as cl:
-      print(yaml.dump({'version': cl.get_host_version()}))
+    if args.host_version:
+      with client.Client() as cl:
+        print(yaml.dump({'version': cl.get_host_version()}))
+    else:
+      print(yaml.dump(config.data))
 
   else:
     parser.print_usage()
