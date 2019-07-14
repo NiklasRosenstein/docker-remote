@@ -27,7 +27,7 @@ setup(
   author_email='rosensteinniklas@gmail.com',
   packages=find_packages('src'),
   package_dir={'': 'src'},
-  install_requires=['nr.fs>=1.1.0', 'PyYAML>=3.12'],
+  install_requires=['nr.fs>=1.1.0', 'PyYAML>=3.12', 'requests'],
   entry_points = {
     'console_scripts': [
       'docker-remote = docker_remote.__main__:_entry_point',
