@@ -110,6 +110,8 @@ def get_argument_parser(prog):
     'Github instead of installing docker-remote from PyPI.')
   install.add_argument('--upgrade', action='store_true', help='Pass --upgrade to Pip.')
 
+  info = subp.add_parser('info', help='Show configuration in the current context.')
+
   return parser
 
 
@@ -127,7 +129,7 @@ def main(argv=None, prog=None):
   docker_compose_file = 'docker-compose.yml'
   if os.path.isfile(docker_compose_file):
     with open(docker_compose_file, 'r') as fp:
-      docker_compose_data = yaml.load(fp)
+      docker_compose_data = yaml.safe_load(fp)
     if 'x-docker-remote' in docker_compose_data:
       config.merge(config.data, docker_compose_data['x-docker-remote'])
       # Extension fields are supported by the file format specification,
@@ -217,9 +219,9 @@ def main(argv=None, prog=None):
 
       elif cl.tunnel:
         print('DOCKER_HOST={}'.format(cl.tunnel.docker_host))
-        while tun.status() == 'alive':
+        while cl.tunnel.status() == 'alive':
           time.sleep(0.1)
-        if tun.status() != 'ended':
+        if cl.tunnel.status() != 'ended':
           return 1
 
       else:
@@ -304,6 +306,9 @@ def main(argv=None, prog=None):
     proc = subp.shell_popen(command, stdin=subprocess.PIPE)
     proc.communicate(script.encode())
     return proc.returncode
+
+  elif args.command == 'info':
+    print(yaml.dump(config.data))
 
   else:
     parser.print_usage()
