@@ -32,7 +32,8 @@ import yaml
 
 from . import __version__, client, config
 from .client import log
-from .core import remotepy, subp
+from .core import remotepy
+from .core.subprocess import shell_call, shell_convert
 
 MISSING_PROJECT_NAME = '''missing project name
 
@@ -46,6 +47,8 @@ add it to your docker-compose.yml or docker-remote.yml:
       project:
         name: my_app_name'''
 
+PROJECT_GIT_URL = 'git+https://github.com/NiklasRosenstein/docker-remote.git'
+
 
 def confirm(question):
   reply = input(question + ' [y/N] ').strip().lower()
@@ -58,7 +61,7 @@ def is_inside_docker_remote_shell():
 
 def get_argument_parser(prog):
   parser = argparse.ArgumentParser(prog=prog)
-  subp = parser.add_subparsers(dest='command')
+  subparsers = parser.add_subparsers(dest='command')
 
   # General options.
   parser.add_argument('--version', action='version', version=__version__)
@@ -72,33 +75,33 @@ def get_argument_parser(prog):
   parser.add_argument('-v', '--verbose', action='count', default=0,
     help='Generate more output, such as sub-commands that are being invoked.')
 
-  tunnel = subp.add_parser('tunnel', help='Create a tunnel to a docker daemon.')
-  shell = subp.add_parser('shell', help='Create a tunnel and enter a new '
+  tunnel = subparsers.add_parser('tunnel', help='Create a tunnel to a docker daemon.')
+  shell = subparsers.add_parser('shell', help='Create a tunnel and enter a new '
     'shell. Inside this shell, a docker-compose alias is created to route '
     'through docker-remote, allowing you to use your normal docker-compose '
     'workflow while having the benefits of docker-remote.')
-  ls = subp.add_parser('ls', help='List projects on the host.')
+  ls = subparsers.add_parser('ls', help='List projects on the host.')
 
-  rm = subp.add_parser('rm', help='Delete a project on the host.')
+  rm = subparsers.add_parser('rm', help='Delete a project on the host.')
   rm.add_argument('-y', '--yes', action='store_true',
     help='Do not ask for confirmation.')
   rm.add_argument('projects', nargs='*', help='Project names to delete.')
 
-  scp = subp.add_parser('scp', help='Download a volume or multiple volume '
+  scp = subparsers.add_parser('scp', help='Download a volume or multiple volume '
     'directories from the host. If no volumes are specified, the whole '
     'project directory is downloaded.')
   scp.add_argument('directory', help='The target directory.')
   scp.add_argument('volumes', nargs='*', help='Volume names to download.')
 
-  docker = subp.add_parser('docker', help='Wrapper for docker.')
+  docker = subparsers.add_parser('docker', help='Wrapper for docker.')
   docker.add_argument('argv', nargs='...')
 
-  compose = subp.add_parser('compose', help='Wrapper for docker-compose.')
+  compose = subparsers.add_parser('compose', help='Wrapper for docker-compose.')
   compose.add_argument('-p', '--project-name')
   compose.add_argument('--rm', action='store_true', help='Remove the project after running.')
   compose.add_argument('argv', nargs='...')
 
-  install = subp.add_parser('install', help='Install docker-remote on a host. '
+  install = subparsers.add_parser('install', help='Install docker-remote on a host. '
     'This will run a bash script on the root user of the host specified with '
     'the -H option or the `[remote] host` configuration to install the latest '
     ' version of docker-remote via Pip (a user install). The script will '
@@ -110,7 +113,7 @@ def get_argument_parser(prog):
     'Github instead of installing docker-remote from PyPI.')
   install.add_argument('--upgrade', action='store_true', help='Pass --upgrade to Pip.')
 
-  info = subp.add_parser('info', help='Show configuration in the current context.')
+  info = subparsers.add_parser('info', help='Show configuration in the current context.')
 
   return parser
 
@@ -184,8 +187,8 @@ def main(argv=None, prog=None):
   elif args.command == 'docker':
     with client.Client() as cl:
       command = ['docker'] + args.argv
-      log.info('$ ' + subp.shell_convert(command))
-      return subp.shell_call(command)
+      log.info('$ ' + shell_convert(command))
+      return shell_call(command)
 
   elif args.command == 'compose':
     if docker_compose_data is None:
@@ -213,9 +216,9 @@ def main(argv=None, prog=None):
           tempfile.close()
           command = [shell, '--rcfile', tempfile.name, '-i']
 
-        log.info('$ ' + subp.shell_convert(command))
+        log.info('$ ' + shell_convert(command))
         os.environ['DOCKER_REMOTE_SHELL'] = '1'
-        return subp.shell_call(command)
+        return shell_call(command)
 
       elif cl.tunnel:
         print('DOCKER_HOST={}'.format(cl.tunnel.docker_host))
@@ -260,13 +263,13 @@ def main(argv=None, prog=None):
         nr.fs.makedirs(dest_dir)
         if host == 'localhost' and not user:
           command = ['cp', '-rv', source_dir, dest_dir]
-          cmd = subp.shell_convert(command)
+          cmd = shell_convert(command)
         else:
           command1 = ['ssh', '{}@{}'.format(user, host), 'tar', '-czC', source_dir, '-f', '-', '.']
           command2 = ['tar', '-vxzC', dest_dir]
-          cmd = subp.shell_convert(command1) + ' | ' + subp.shell_convert(command2)
+          cmd = shell_convert(command1) + ' | ' + shell_convert(command2)
         log.info('$ ' + cmd)
-        code = subp.shell_call(cmd)
+        code = shell_call(cmd)
         if code != 0:
           break
 
@@ -279,36 +282,33 @@ def main(argv=None, prog=None):
       return 0
 
     commands = []
+
     # Ensure that ~/.local/bin is in the PATH.
     commands.append(textwrap.dedent('''
       echo "$PATH" | grep "$HOME/.local/bin" >> /dev/null
       if [ $? != 0 ] ; then
-        echo "$HOME/.local/bin not found in PATH. Adding to .bashrc ..."
-        sed -e '1iPATH="$HOME/.local/bin:$PATH"' -i .bashrc
-      else
-        echo "$HOME/.local/bin found in PATH"
+        sed -e 'PATH="$HOME/.local/bin:$PATH"' -i .bashrc
+        echo "Added $HOME/local/bin to .bashrc"
       fi
     ''').strip())
+
     # Install the package with Pip.
-    if args.ref:
-      req = 'git+https://github.com/NiklasRosenstein/docker-remote.git@' + args.ref
-    else:
-      req = 'docker-remote'
+    if not args.ref:
+      args.ref = 'v' + __version__
+    req = '{}@{}'.format(PROJECT_GIT_URL, args.ref)
     commands.append('{pip} install --user ' + req)
     if args.upgrade:
       commands[-1] += ' --upgrade'
+
     commands.append('exit $?')
 
     script = '\n'.join(x.format(pip=args.via) for x in commands)
-    command = ['ssh', client.get_remote_string(), 'bash', '-s']
-    log.info('Bash Script:\n\n%s\n', script)
-    log.info('$ ' + subp.shell_convert(command))
-    proc = subp.shell_popen(command, stdin=subprocess.PIPE)
-    proc.communicate(script.encode())
-    return proc.returncode
+    return client.run_bash_script(script)
 
   elif args.command == 'info':
     print(yaml.dump(config.data))
+    with client.Client() as cl:
+      print(yaml.dump({'version': cl.get_host_version()}))
 
   else:
     parser.print_usage()

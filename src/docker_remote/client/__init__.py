@@ -23,10 +23,12 @@
 import contextlib
 import os
 import nr.fs
+import subprocess
 import yaml
 from . import log
 from .. import config, host
-from ..core import remotepy, tunnel, subp
+from ..core import remotepy, tunnel
+from ..core.subprocess import shell_call, shell_convert, shell_popen
 
 
 def set_remote_config(host, user=None):
@@ -104,6 +106,13 @@ def create_docker_tunnel(host=None, user=None, local_port=None,
   log.info('Creating Docker SSH Tunnel {}:{} on {}@{}.'.format(
     local_port, remote_port, user, host))
   return DockerTunnel(host, user, None, local_port, remote_port)
+
+
+def run_bash_script(script):
+  command = ['ssh', get_remote_string(), 'bash', '-s']
+  proc = shell_popen(command, stdin=subprocess.PIPE)
+  proc.communicate(script.encode())
+  return proc.returncode
 
 
 class DockerTunnel(tunnel.SSHTunnel):
@@ -282,8 +291,11 @@ class Client:
         # a Linux docker daemon.
         env['COMPOSE_CONVERT_WINDOWS_PATHS'] = '1'
 
-      log.info('$ ' + subp.shell_convert(command))
-      return subp.shell_call(command, env=env)
+      log.info('$ ' + shell_convert(command))
+      return shell_call(command, env=env)
+
+  def get_host_version(self):
+    return self.remote.call(host.get_version)
 
   def list_projects(self):
     return self.remote.call(host.projects.list_projects)

@@ -29,7 +29,8 @@ import subprocess
 
 if os.name == 'nt':
   def get_docker_host_ip():
-    # TODO: Can ipconfig be localized?
+    # TODO: Could the ipconfig be localized? In that case we need to extract
+    #       the Docker IP in a language-agnostic way.
     output = subprocess.check_output(['ipconfig']).decode()
     index = output.find('(DockerNAT):')
     if index < 0:

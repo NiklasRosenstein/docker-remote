@@ -34,7 +34,7 @@ import sys
 import struct
 import threading
 import traceback
-from .subp import shell_popen
+from .subprocess import shell_popen
 
 TOOL_NAME = 'docker-remote.core.remotepy'
 
