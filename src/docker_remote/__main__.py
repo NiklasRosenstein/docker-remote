@@ -94,6 +94,9 @@ def get_argument_parser(prog):
   scp.add_argument('directory', help='The target directory.')
   scp.add_argument('volumes', nargs='*', help='Volume names to download.')
 
+  ssh = subparsers.add_parser('ssh')
+  ssh.add_argument('argv', nargs='...')
+
   docker = subparsers.add_parser('docker', help='Wrapper for docker.')
   docker.add_argument('argv', nargs='...')
 
@@ -283,6 +286,15 @@ def main(argv=None, prog=None):
           break
 
       return code
+
+  elif args.command == 'ssh':
+    with client.Client(create_tunnel=False) as cl:
+      if not cl.project_exists(args.project_name):
+        parser.error('project {!r} does not exist'.format(args.project_name))
+      path = cl.get_project_path(args.project_name)
+    if not args.argv:
+      args.argv = ['-t', 'cd "{}"; bash -l'.format(path)]
+    return subprocess.check_call(['ssh', client.get_remote_string()] + args.argv)
 
   elif args.command == 'install':
     host, user = client.get_remote_config()
